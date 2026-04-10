@@ -211,14 +211,14 @@ else
   ROOT_VARS=$(awk '
     f && /^\.[a-z]/ { f=0 }
     /^\.root/       { f=1 }
-    f' "$CSS_FILE" | grep -oE "\-\-${COMPONENT_LC}-[a-z0-9-]+" | sort -u)
+    f' "$CSS_FILE" | grep -oE "\-\-${COMPONENT_LC}-[a-z0-9-]+" | sort -u || true)
 
   PORTAL_VARS=$(awk '
     f && /^\.[a-z]/ { f=0 }
     /^\.dropdown/ || /^\.option/ || /^\.panel/   ||
     /^\.popover/  || /^\.listbox/ || /^\.tooltip/ ||
     /^\.overlay/  || /^\.menu/    { f=1 }
-    f' "$CSS_FILE" | grep -oE "\-\-${COMPONENT_LC}-[a-z0-9-]+" | sort -u)
+    f' "$CSS_FILE" | grep -oE "\-\-${COMPONENT_LC}-[a-z0-9-]+" | sort -u || true)
 
   PORTAL_ISSUES=""
   if [ -n "$PORTAL_VARS" ] && [ -n "$ROOT_VARS" ]; then

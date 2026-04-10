@@ -218,37 +218,39 @@ run_stage1() {
   # expansion) rather than via an unquoted heredoc (which would expand backticks
   # and $(...) sequences found in AGENT-CLAUDE.md or mantine-llms.txt).
   local PROMPT_FILE
-  PROMPT_FILE=$(mktemp /tmp/mantine-stage1-XXXXXX.txt)
+  PROMPT_FILE=$(mktemp /tmp/mantine-stage1-XXXXXX)
 
   {
-    printf '%s\n' \
-      "You are a specialized component generation agent running STAGE 1 (PLAN) only." \
-      "Do NOT generate any code files. Do NOT write to the filesystem." \
-      "" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
-      "PROJECT RULES & GOTCHAS (CLAUDE.md)" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "You are a specialized component generation agent running STAGE 1 (PLAN) only."
+    echo "Do NOT generate any code files. Do NOT write to the filesystem."
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "PROJECT RULES & GOTCHAS (CLAUDE.md)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     cat "$CLAUDE_MD"
-    printf '\n%s\n%s\n%s\n' \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
-      "STAGE 1 WORKFLOW (stage1-prompt.md)" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "STAGE 1 WORKFLOW (stage1-prompt.md)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     cat "$STAGE1_PROMPT"
-    printf '\n%s\n%s\n%s\n' \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
-      "STYLE GUIDE (style_guide.md)" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "STYLE GUIDE (style_guide.md)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     cat "$STYLE_GUIDE"
-    printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-    printf 'MANTINE API: %s\n' "$COMPONENT"
-    printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-    printf '%s\n' "$COMPONENT_API_SECTION"
-    printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-    printf '\nComponent to plan:\n'
-    printf '- Name: %s\n' "$COMPONENT"
-    printf '- Figma: %s\n' "$FIGMA_LINK"
-    printf '- Output dir (for Stage 2): %s/02-generated/%s/\n' "$PROJECT_ROOT" "$COMPONENT"
-    printf '\nBegin Stage 1 now. Follow the workflow above. End with your plan inside <STAGE1_PLAN> markers.\n'
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "MANTINE API: $COMPONENT"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "$COMPONENT_API_SECTION"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Component to plan:"
+    echo "- Name: $COMPONENT"
+    echo "- Figma: $FIGMA_LINK"
+    echo "- Output dir (for Stage 2): $PROJECT_ROOT/02-generated/$COMPONENT/"
+    echo ""
+    echo "Begin Stage 1 now. Follow the workflow above. End with your plan inside <STAGE1_PLAN> markers."
   } > "$PROMPT_FILE"
 
   set +e
@@ -429,42 +431,45 @@ run_stage23() {
   # expansion of file contents (AGENT-CLAUDE.md, stage23-prompt.md, plan file).
   # Also avoids storing the full plan in a shell variable (no size limit risk).
   local PROMPT_FILE
-  PROMPT_FILE=$(mktemp /tmp/mantine-stage23-XXXXXX.txt)
+  PROMPT_FILE=$(mktemp /tmp/mantine-stage23-XXXXXX)
 
   {
-    printf '%s\n' \
-      "You are a specialized component generation agent running STAGE 2 (ACT) + STAGE 3 (REFLECT)." \
-      "The Stage 1 plan below has been approved by a human. Implement it exactly." \
-      "" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
-      "PROJECT RULES & GOTCHAS (CLAUDE.md)" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "You are a specialized component generation agent running STAGE 2 (ACT) + STAGE 3 (REFLECT)."
+    echo "The Stage 1 plan below has been approved by a human. Implement it exactly."
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "PROJECT RULES & GOTCHAS (CLAUDE.md)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     cat "$CLAUDE_MD"
-    printf '\n%s\n%s\n%s\n' \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
-      "STAGE 2+3 WORKFLOW (stage23-prompt.md)" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "STAGE 2+3 WORKFLOW (stage23-prompt.md)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     cat "$STAGE23_PROMPT"
-    printf '\n%s\n%s\n%s\n' \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
-      "STYLE GUIDE (style_guide.md)" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "STYLE GUIDE (style_guide.md)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     cat "$STYLE_GUIDE"
-    printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-    printf 'MANTINE API: %s\n' "$COMPONENT"
-    printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-    printf '%s\n' "$COMPONENT_API_SECTION"
-    printf '\n%s\n%s\n%s\n' \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
-      "STAGE 1 PLAN (approved — implement this)" \
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "MANTINE API: $COMPONENT"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "$COMPONENT_API_SECTION"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "STAGE 1 PLAN (approved — implement this)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     cat "$PLAN_FILE"
-    printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-    printf '\nComponent:\n'
-    printf '- Name: %s\n' "$COMPONENT"
-    printf '- Figma: %s (reference only — do NOT call any Figma MCP tools)\n' "$FIGMA_LINK"
-    printf '- Output dir: %s/02-generated/%s/\n' "$PROJECT_ROOT" "$COMPONENT"
-    printf '\nBegin Stage 2 now. Generate all 4 files, then run all Stage 3 quality gates.\n'
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Component:"
+    echo "- Name: $COMPONENT"
+    echo "- Figma: $FIGMA_LINK (reference only — do NOT call any Figma MCP tools)"
+    echo "- Output dir: $PROJECT_ROOT/02-generated/$COMPONENT/"
+    echo ""
+    echo "Begin Stage 2 now. Generate all 4 files, then run all Stage 3 quality gates."
   } > "$PROMPT_FILE"
 
   set +e
