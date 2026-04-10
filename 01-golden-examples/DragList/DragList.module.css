@@ -1,0 +1,173 @@
+/* ── Card variants (cards + with-handle) ─────────────────────────────────── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: rem(12px);
+  width: rem(420px);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: rem(16px);
+  height: rem(64px);
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: rem(8px);
+  box-sizing: border-box;
+  user-select: none;
+
+  /* default padding (with-handle) — must be declared before nested [data-variant] selectors */
+  padding-inline: rem(24px);
+
+  &:where([data-variant='cards']) {
+    padding-inline: rem(32px);
+    cursor: grab;
+    touch-action: none;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &:where([data-dragging]) {
+    opacity: 0.4;
+  }
+
+  &:where([data-overlay]) {
+    box-shadow: var(--mantine-shadow-md);
+    cursor: grabbing;
+  }
+}
+
+.handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
+
+  @mixin hover {
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.symbol {
+  flex-shrink: 0;
+  width: rem(54px);
+  font-size: rem(32px);
+  font-weight: 500;
+  line-height: rem(40px);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: rem(4px);
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--mantine-font-size-md);
+  line-height: rem(24px);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+  white-space: nowrap;
+}
+
+.description {
+  font-size: var(--mantine-font-size-sm);
+  line-height: rem(20px);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-5));
+}
+
+/* ── Table variant ───────────────────────────────────────────────────────── */
+
+.table {
+  width: rem(420px);
+}
+
+.tableHeader {
+  display: flex;
+  align-items: center;
+  border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.tableRow {
+  display: flex;
+  align-items: center;
+  border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  user-select: none;
+
+  &:where([data-dragging]) {
+    opacity: 0.4;
+  }
+
+  &:where([data-overlay]) {
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+    box-shadow: var(--mantine-shadow-sm);
+    cursor: grabbing;
+  }
+}
+
+/* Grip column — same width in header and rows */
+.tableGripCol {
+  flex-shrink: 0;
+  width: rem(60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: rem(12px);
+}
+
+/* Fixed-width data/header cell */
+.tableCell {
+  flex-shrink: 0;
+  width: rem(84px);
+  padding: rem(12px);
+  font-size: var(--mantine-font-size-sm);
+  line-height: rem(20px);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+}
+
+/* Apply to Name cells to make them fill remaining width */
+.tableCellFlex {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.tableHeaderCell {
+  flex-shrink: 0;
+  width: rem(84px);
+  padding: rem(12px);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  line-height: rem(20px);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+}
+
+.tableHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
+
+  @mixin hover {
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}

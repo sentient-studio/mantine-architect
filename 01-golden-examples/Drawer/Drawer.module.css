@@ -1,0 +1,26 @@
+/* ─── Content (main drawer panel) ──────────────────────────────────────────── */
+.content {
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+}
+
+/* ─── Header (sticky title + close button row) ──────────────────────────────── */
+.header {
+  border-bottom: rem(1px) solid var(--mantine-color-gray-2);
+}
+
+/* ─── Title (h2 element in the header) ─────────────────────────────────────── */
+.title {
+  font-size: var(--mantine-font-size-md);
+  font-weight: 400;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-0));
+}
+
+/* ─── Body (scrollable content area below the header) ──────────────────────── */
+.body {
+  padding-top: var(--mantine-spacing-xl);
+}
+
+/* ─── Close button ──────────────────────────────────────────────────────────── */
+.close {
+  border-radius: var(--mantine-radius-sm);
+}

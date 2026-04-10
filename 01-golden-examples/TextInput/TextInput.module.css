@@ -1,0 +1,69 @@
+.root {
+  --input-height-xs: rem(30px);
+  --input-height-sm: rem(36px);
+  --input-height-md: rem(42px);
+  --input-height-lg: rem(50px);
+  --input-height-xl: rem(60px);
+
+  --input-padding-inline: var(--mantine-spacing-sm);
+
+  /* Mantine sets data-size on the root automatically when size prop is passed */
+  &:where([data-size='xs']) { --input-height: var(--input-height-xs); }
+  &:where([data-size='sm']) { --input-height: var(--input-height-sm); }
+  &:where([data-size='md']) { --input-height: var(--input-height-md); }
+  &:where([data-size='lg']) { --input-height: var(--input-height-lg); }
+  &:where([data-size='xl']) { --input-height: var(--input-height-xl); }
+
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.label {
+  display: inline-block;
+  font-weight: 500;
+  word-break: break-word;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  font-size: var(--mantine-font-size-sm);
+  margin-bottom: calc(var(--mantine-spacing-xs) / 2);
+}
+
+.input {
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  resize: none;
+  display: block;
+  width: 100%;
+  transition: border-color 100ms ease;
+  
+  height: var(--input-height, var(--input-height-sm));
+  border: rem(1px) solid var(--mantine-color-gray-3);
+  background-color: var(--mantine-color-white);
+  padding-inline: var(--input-padding-inline);
+  border-radius: var(--mantine-radius-sm);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-sm);
+
+  &:where(:focus, :focus-within) {
+    outline: none;
+    border-color: var(--mantine-primary-color-filled);
+  }
+
+  &:where([data-error]) {
+    border-color: var(--mantine-color-red-filled);
+    color: var(--mantine-color-red-filled);
+  }
+
+  &:where(:disabled, [data-disabled]) {
+    cursor: not-allowed;
+    background-color: var(--mantine-color-gray-0);
+    color: var(--mantine-color-gray-5);
+    opacity: 0.6;
+  }
+}
+
+.error {
+  word-break: break-word;
+  color: var(--mantine-color-red-filled);
+  font-size: var(--mantine-font-size-xs);
+  margin-top: calc(var(--mantine-spacing-xs) / 2);
+}

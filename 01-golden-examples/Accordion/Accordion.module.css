@@ -1,0 +1,81 @@
+/* ─── Size token cascade ─────────────────────────────────────────────────────
+   Defaults (md = 48px control height, matches Figma) declared BEFORE nested
+   [data-size] selectors per cascade rule. PostCSS compiles nesting to same
+   specificity; a default after the nested blocks always wins and kills the scale.
+   ────────────────────────────────────────────────────────────────────────── */
+.root {
+  --acc-control-height: rem(48px);
+  --acc-fz: var(--mantine-font-size-md);
+  --acc-padding-x: var(--mantine-spacing-md);
+
+  &:where([data-size='xs']) {
+    --acc-control-height: rem(32px);
+    --acc-fz: var(--mantine-font-size-xs);
+    --acc-padding-x: var(--mantine-spacing-xs);
+  }
+
+  &:where([data-size='sm']) {
+    --acc-control-height: rem(38px);
+    --acc-fz: var(--mantine-font-size-sm);
+    --acc-padding-x: var(--mantine-spacing-sm);
+  }
+
+  /* md = default — no override needed */
+
+  &:where([data-size='lg']) {
+    --acc-control-height: rem(56px);
+    --acc-fz: var(--mantine-font-size-lg);
+    --acc-padding-x: var(--mantine-spacing-lg);
+  }
+
+  &:where([data-size='xl']) {
+    --acc-control-height: rem(64px);
+    --acc-fz: var(--mantine-font-size-xl);
+    --acc-padding-x: var(--mantine-spacing-xl);
+  }
+}
+
+/* ─── Item (each accordion row + panel) ─────────────────────────────────── */
+.item {
+  border-top: none;
+  border-bottom: rem(1px) solid var(--mantine-color-gray-3);
+
+  &:first-of-type {
+    border-top: rem(1px) solid var(--mantine-color-gray-3);
+  }
+}
+
+/* ─── Control (clickable header row) ────────────────────────────────────── */
+.control {
+  min-height: var(--acc-control-height);
+  padding-inline: var(--acc-padding-x);
+  background-color: transparent;
+
+  @mixin hover {
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  }
+}
+
+/* ─── Label (title text inside control) ─────────────────────────────────── */
+.label {
+  font-size: var(--acc-fz);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+}
+
+/* ─── Chevron icon ───────────────────────────────────────────────────────── */
+.chevron {
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+}
+
+/* ─── Panel (collapsible wrapper — Mantine controls visibility) ──────────── */
+.panel {
+  /* intentionally unstyled — Mantine handles expand/collapse animation */
+}
+
+/* ─── Content (inner padding inside the open panel) ─────────────────────── */
+.content {
+  padding-inline: var(--acc-padding-x);
+  padding-block: var(--mantine-spacing-md);
+  font-size: var(--acc-fz);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+}

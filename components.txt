@@ -1,0 +1,7 @@
+# Components Batch File
+# Format: ComponentName,FigmaLink
+# Lines starting with # are comments and will be ignored
+
+Badge,https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=78-692&m=dev
+Checkbox,https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=78-695&m=dev
+Select,https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=78-1313&m=dev

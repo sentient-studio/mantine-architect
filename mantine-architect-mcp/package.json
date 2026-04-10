@@ -1,0 +1,26 @@
+{
+  "name": "@mantine-architect/mcp",
+  "version": "1.0.0",
+  "description": "MCP server — generate production Mantine components from Figma designs using your own Claude API key",
+  "type": "module",
+  "bin": {
+    "mantine-architect-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "node --import tsx/esm src/index.ts"
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

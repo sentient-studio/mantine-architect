@@ -1,0 +1,43 @@
+# Mantine LLM docs — fetched fresh at dispatch time via dispatch-agent.sh
+# Do not commit; the file is auto-downloaded from https://mantine.dev/llms-full.txt
+00-setup/mantine-llms.txt
+00-setup/.mantine-llms-etag
+
+# Node
+node_modules/
+npm-debug.log
+package-lock.json
+
+# Generated components (optional - you may want to commit these)
+02-generated/
+
+# Logs
+logs/*.log
+*.log
+logs/mcp-jobs.json
+
+# MCP server compiled output — run `npm run build` to regenerate
+mantine-architect-mcp/dist/
+
+# Claude Code — local settings (machine-specific paths, allowed bash commands)
+.claude/settings.local.json
+
+# Playwright test artefacts
+test-results/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+*storybook.log
+storybook-static
