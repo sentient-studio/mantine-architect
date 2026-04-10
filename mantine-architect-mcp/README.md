@@ -18,7 +18,7 @@ Exposes 5 tools to Claude Desktop / Claude Code:
 
 - Node.js 20+
 - [Claude Desktop](https://claude.ai/download) or [Claude Code](https://claude.ai/code)
-- The `figma-ai-project` scripts directory (provides `dispatch-agent.sh`)
+- This repo cloned locally (provides `scripts/dispatch-agent.sh`)
 - A Figma personal access token
 - An Anthropic API key (already set up if you use Claude Desktop)
 
