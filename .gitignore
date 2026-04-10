@@ -8,8 +8,6 @@ node_modules/
 npm-debug.log
 package-lock.json
 
-# Generated components (optional - you may want to commit these)
-02-generated/
 
 # Logs
 logs/*.log

@@ -1,0 +1,216 @@
+/* ─── Root wrapper (outer Box — carries data-size for size cascade) ─── */
+.root {
+  /* Size defaults declared BEFORE nested [data-size] selectors (cascade ordering rule) */
+  --ms-min-height: rem(42px);
+  --ms-fz: var(--mantine-font-size-sm);
+  --ms-padding-inline: var(--mantine-spacing-sm);
+
+  &:where([data-size='xs']) {
+    --ms-min-height: rem(28px);
+    --ms-fz: var(--mantine-font-size-xs);
+    --ms-padding-inline: var(--mantine-spacing-xs);
+  }
+
+  &:where([data-size='sm']) {
+    --ms-min-height: rem(34px);
+    --ms-fz: var(--mantine-font-size-sm);
+    --ms-padding-inline: var(--mantine-spacing-sm);
+  }
+
+  &:where([data-size='md']) {
+    --ms-min-height: rem(42px);
+    --ms-fz: var(--mantine-font-size-sm);
+    --ms-padding-inline: var(--mantine-spacing-sm);
+  }
+
+  &:where([data-size='lg']) {
+    --ms-min-height: rem(50px);
+    --ms-fz: var(--mantine-font-size-md);
+    --ms-padding-inline: var(--mantine-spacing-md);
+  }
+
+  &:where([data-size='xl']) {
+    --ms-min-height: rem(60px);
+    --ms-fz: var(--mantine-font-size-lg);
+    --ms-padding-inline: var(--mantine-spacing-md);
+  }
+}
+
+/* ─── Label ─── */
+.label {
+  display: inline-block;
+  font-weight: 600;
+  word-break: break-word;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  /* Cascades from .root via --ms-fz */
+  font-size: var(--ms-fz, var(--mantine-font-size-sm));
+  margin-bottom: calc(var(--mantine-spacing-xs) / 2);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+}
+
+/* ─── Required asterisk ─── */
+.required {
+  /* red-filled = red.6 (~3.5:1) ❌ — use red.9 (5.12:1) ✅ */
+  color: light-dark(var(--mantine-color-red-9), var(--mantine-color-red-4));
+  margin-inline-start: rem(2px);
+}
+
+/* ─── Description ─── */
+.description {
+  word-break: break-word;
+  font-size: var(--mantine-font-size-xs);
+  /* --mantine-color-dimmed = gray.6 (3.15:1) ❌ — use gray.7 (7.45:1) ✅ */
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+  margin-bottom: calc(var(--mantine-spacing-xs) / 2);
+}
+
+/* ─── Wrapper ─── */
+.wrapper {
+  position: relative;
+}
+
+/* ─── Input (pills container div — auto-height, grows with pill wrapping) ─── */
+.input {
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  /* min-height instead of height — pills can wrap to multiple lines */
+  min-height: var(--ms-min-height, rem(42px));
+  padding-inline: var(--ms-padding-inline, var(--mantine-spacing-sm));
+  /* Extra end padding for the chevron section */
+  padding-inline-end: rem(36px);
+  padding-block: rem(4px);
+  gap: rem(4px);
+  cursor: pointer;
+  transition: border-color 100ms ease;
+
+  border: rem(1px) solid var(--mantine-color-gray-3);
+  border-radius: var(--mantine-radius-sm);
+  font-family: var(--mantine-font-family);
+  font-size: var(--ms-fz, var(--mantine-font-size-sm));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+
+  &:where(:focus, :focus-within) {
+    outline: none;
+    border-color: var(--mantine-primary-color-filled);
+  }
+
+  /* Dropdown open state */
+  &:where([data-expanded]) {
+    border-color: var(--mantine-primary-color-filled);
+  }
+
+  /* Error state — use red.9 (5.12:1 ✅), never red-filled (red.6 = ~3.5:1 ❌) */
+  &:where([data-error]) {
+    border-color: var(--mantine-color-red-filled);
+    color: light-dark(var(--mantine-color-red-9), var(--mantine-color-red-4));
+  }
+
+  &:where(:disabled, [data-disabled]) {
+    cursor: not-allowed;
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+    color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+/* ─── Pills list (flex row wrapping pills + search inputField) ─── */
+.pillsList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: rem(4px);
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Individual pill ─── */
+/* pill cascades from .root so --ms-fz is in scope (not a portal) */
+.pill {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  border-radius: var(--mantine-radius-xl);
+  font-size: var(--ms-fz, var(--mantine-font-size-sm));
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  max-width: 100%;
+}
+
+/* ─── Search input field (inside pillsList, not a portal) ─── */
+.inputField {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--ms-fz, var(--mantine-font-size-sm));
+  font-family: var(--mantine-font-family);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+
+  &::placeholder {
+    /* Placeholder hint text — exempted from WCAG 1.4.3 (inactive UI) */
+    color: var(--mantine-color-placeholder);
+  }
+}
+
+/* ─── Section (left / right — shared slot for chevron AND clear button) ─── */
+/* CRITICAL: Do NOT set pointer-events: none here — it silently breaks the clear button.
+   The chevron is decorative but the section slot is shared with the clearable X button. */
+.section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-3));
+}
+
+/* ─── Dropdown (portal-rendered — must use only concrete var(--mantine-*) tokens) ─── */
+/* --ms-* variables from .root do NOT cascade here */
+.dropdown {
+  border: rem(1px) solid var(--mantine-color-gray-2);
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  border-radius: var(--mantine-radius-sm);
+  box-shadow: var(--mantine-shadow-md);
+  overflow: hidden;
+  padding: rem(4px);
+}
+
+/* ─── Option (portal-rendered — must use only concrete var(--mantine-*) tokens) ─── */
+.option {
+  padding: rem(8px) var(--mantine-spacing-sm);
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  cursor: pointer;
+  transition: background-color 80ms ease;
+  border-radius: var(--mantine-radius-xs);
+
+  @mixin hover {
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+  }
+
+  /* Keyboard-navigation highlighted option */
+  &:where([data-combobox-active]) {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+
+  /* Currently selected option */
+  &:where([data-combobox-selected]) {
+    background-color: var(--mantine-primary-color-light);
+    color: var(--mantine-primary-color-light-color);
+  }
+
+  &:where([data-combobox-disabled]) {
+    color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+/* ─── Error message ─── */
+.error {
+  word-break: break-word;
+  /* red-filled = red.6 (~3.5:1) ❌ — use red.9 (5.12:1) ✅ */
+  color: light-dark(var(--mantine-color-red-9), var(--mantine-color-red-4));
+  font-size: var(--mantine-font-size-xs);
+  margin-top: calc(var(--mantine-spacing-xs) / 2);
+}

@@ -1,0 +1,54 @@
+.root {
+  width: 100%;
+}
+
+.th {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-dark-9), var(--mantine-color-gray-0));
+  padding: rem(12px);
+  line-height: rem(20px);
+  white-space: nowrap;
+}
+
+.tfoot {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-dark-9), var(--mantine-color-gray-0));
+  padding: rem(12px);
+  line-height: rem(20px);
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: rem(8px);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-dark-9), var(--mantine-color-gray-0));
+  line-height: rem(20px);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0;
+
+  @mixin hover {
+    color: var(--mantine-color-blue-8);
+  }
+}
+
+.sortIcon {
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+  flex-shrink: 0;
+}
+
+.sortIconActive {
+  color: var(--mantine-color-blue-8);
+  flex-shrink: 0;
+}
+
+.caption {
+  /* Override Mantine's dimmed default (gray.6 = 3.32:1) → gray.7 = 7.45:1 ✅ */
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+}

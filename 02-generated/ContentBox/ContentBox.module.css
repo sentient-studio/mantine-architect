@@ -1,0 +1,38 @@
+.root {
+  /* Layout — flex-centered, full-width, zero gap between children */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+
+  /* Design tokens from Figma */
+  padding: var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-sm);
+
+  /* Typography — inherits Mantine body font; colour supports dark mode */
+  font-size: var(--mantine-font-size-md);
+  line-height: var(--mantine-line-height-md);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-0));
+
+  /* Reset — ensures button variant has no native border/bg */
+  border: none;
+  background: transparent;
+
+  /* Default variant: subtle hover feedback */
+  &:where([data-variant='default']) {
+    @mixin hover {
+      background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+    }
+  }
+
+  /* Link variant: interactive surface with stronger hover + pointer cursor */
+  &:where([data-variant='link']) {
+    cursor: pointer;
+    text-align: inherit;
+
+    @mixin hover {
+      background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+    }
+  }
+}

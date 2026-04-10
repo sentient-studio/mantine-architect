@@ -1,0 +1,19 @@
+/*
+ * Modal token overrides — Mantine handles shadow, radius, padding via props.
+ * Only override where Figma deviates from Mantine defaults.
+ */
+
+.content {
+  /* --background/body = gray.0; Mantine default is white */
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+}
+
+.header {
+  /* Sticky header must match content background so scrolled body doesn't bleed through */
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+}
+
+.title {
+  /* --text/title = black; maps to gray.9 in light mode */
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-0));
+}

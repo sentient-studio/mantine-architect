@@ -1,0 +1,34 @@
+/*
+ * Badge.module.css
+ * Design-system overrides applied via Mantine Styles API (classNames prop).
+ *
+ * Rules enforced by quality gate:
+ *   - No hex / raw RGB  → var(--mantine-color-*)
+ *   - No bare px        → rem()  (px inside rem() is valid PostCSS)
+ *   - No !important
+ *   - Hover states      → @mixin hover
+ *   - Theme colours     → light-dark()
+ *   - [data-*] selectors wrapped in :where() to keep specificity at 0-1-0
+ */
+
+.root {
+  /* Typography — consistent weight and tracking across all variants */
+  font-weight: 700;
+  letter-spacing: rem(0.5px);
+  text-transform: uppercase;
+
+  /* Prevent badge from overflowing its container */
+  max-width: 100%;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}

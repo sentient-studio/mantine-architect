@@ -1,0 +1,132 @@
+/*
+ * Checkbox.module.css
+ *
+ * CSS rules:
+ *   - All spacing: rem()
+ *   - Hover states: @mixin hover
+ *   - Theme-aware colours: light-dark()
+ *   - Zero hardcoded hex / rgb / bare-px values
+ *   - Defaults declared BEFORE nested [data-size] selectors (cascade ordering rule)
+ *   - :where() on all [data-*] selectors (specificity 0-1-0)
+ */
+
+/* ─── Size custom-property cascade ───────────────────────────────────────── */
+.root {
+  /* Defaults (md) — MUST appear before [data-size] selectors */
+  --cb-fz: var(--mantine-font-size-sm);
+  --cb-label-lh: var(--mantine-line-height-sm);
+  --cb-description-fz: var(--mantine-font-size-xs);
+
+  &:where([data-size='xs']) {
+    --cb-fz: var(--mantine-font-size-xs);
+    --cb-label-lh: var(--mantine-line-height-xs);
+    --cb-description-fz: var(--mantine-font-size-xs);
+  }
+
+  &:where([data-size='sm']) {
+    --cb-fz: var(--mantine-font-size-sm);
+    --cb-label-lh: var(--mantine-line-height-sm);
+    --cb-description-fz: var(--mantine-font-size-xs);
+  }
+
+  &:where([data-size='md']) {
+    --cb-fz: var(--mantine-font-size-md);
+    --cb-label-lh: var(--mantine-line-height-md);
+    --cb-description-fz: var(--mantine-font-size-sm);
+  }
+
+  &:where([data-size='lg']) {
+    --cb-fz: var(--mantine-font-size-lg);
+    --cb-label-lh: var(--mantine-line-height-lg);
+    --cb-description-fz: var(--mantine-font-size-sm);
+  }
+
+  &:where([data-size='xl']) {
+    --cb-fz: var(--mantine-font-size-xl);
+    --cb-label-lh: var(--mantine-line-height-xl);
+    --cb-description-fz: var(--mantine-font-size-md);
+  }
+}
+
+/* ─── Layout ─────────────────────────────────────────────────────────────── */
+.body {
+  display: flex;
+  align-items: flex-start;
+}
+
+.inner {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ─── Input ──────────────────────────────────────────────────────────────── */
+.input {
+  cursor: pointer;
+  transition:
+    background-color 100ms ease,
+    border-color 100ms ease;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  /*
+   * Error border — must use red.9 (5.12:1 ✅)
+   * --mantine-color-error resolves to red.6 (~3.5:1 ❌)
+   */
+  &[data-error] {
+    border-color: light-dark(var(--mantine-color-red-9), var(--mantine-color-red-4));
+  }
+
+  /* Hover: highlight border only when not already active/disabled */
+  @mixin hover {
+    &:where(:not(:disabled, :checked, :indeterminate)) {
+      border-color: var(--mantine-primary-color-filled);
+    }
+  }
+}
+
+/* ─── Icon ───────────────────────────────────────────────────────────────── */
+.icon {
+  /* Respect iconColor prop via the CSS variable Mantine exposes */
+  color: var(--checkbox-icon-color, var(--mantine-color-white));
+  pointer-events: none;
+}
+
+/* ─── Label wrapper ──────────────────────────────────────────────────────── */
+.labelWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mantine-spacing-xs) * 0.25);
+}
+
+/* ─── Label ──────────────────────────────────────────────────────────────── */
+.label {
+  font-size: var(--cb-fz);
+  line-height: var(--cb-label-lh);
+  /* gray-9 on white = sufficient contrast in light mode */
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  cursor: pointer;
+
+  &:where([data-disabled]) {
+    color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+    cursor: not-allowed;
+  }
+}
+
+/* ─── Description ────────────────────────────────────────────────────────── */
+.description {
+  font-size: var(--cb-description-fz);
+  /* gray-6 = 3.15:1 on white — fails WCAG AA ❌; gray-7 = 7.45:1 ✅ */
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+}
+
+/* ─── Error message ──────────────────────────────────────────────────────── */
+.error {
+  font-size: var(--cb-description-fz);
+  /*
+   * --mantine-color-error = red.6 (~3.5:1) — fails WCAG AA ❌
+   * red.9 = 5.12:1 ✅
+   */
+  color: light-dark(var(--mantine-color-red-9), var(--mantine-color-red-4));
+}
