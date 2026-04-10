@@ -509,7 +509,7 @@ expect(rects.chevronLeft).toBeGreaterThan(rects.labelLeft);
 
 ---
 
-## Quality Gates (9 Total)
+## Quality Gates (11 Total)
 
 Run via `./scripts/quality-gate.sh <ComponentName> [--skip-deps]`
 
@@ -522,6 +522,8 @@ Run via `./scripts/quality-gate.sh <ComponentName> [--skip-deps]`
 7. Size Variant Coverage — data-size present when size prop used
 8. Test Coverage — spec file has test cases
 9. Dependency Audit — `./scripts/dependency-audit.sh <Component>`
+10. Visual Snapshot — `toHaveScreenshot` assertion present in spec (catches misspelled CSS tokens that render transparent and pass all other gates)
+11. Portal CSS Variable Scope — component-scoped CSS vars defined on `.root` not referenced inside portal-rendered classes (`.dropdown`, `.option`, `.panel`, etc.)
 
 ---
 
