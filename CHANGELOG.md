@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.46.0] — 2026-04-10
+
+### Fixed — documentation and shell script hardening
+
+**CLAUDE.md:** Quality Gates section corrected from "9 Total" to "11 Total". Gates 10 (Visual Snapshot) and 11 (Portal CSS Variable Scope) were implemented in `quality-gate.sh` but never added to the reference list.
+
+**CLAUDE.md / MCP README:** Stale `figma-ai-project` directory reference replaced with `sentient-studio/mantine-architect` repo name.
+
+**dispatch-agent.sh:** Replaced unquoted heredocs with temp-file prompt build pattern — file contents written via `cat` (no shell expansion of backticks or `$(...)` sequences). Also fixed `mktemp` template suffix (macOS requires `XXXXXX` at end), replaced `printf '%s\n'` with `echo` for Unicode separator strings, and added `pipefail` with `|| true` guards on pipelines that legitimately return non-zero on empty input.
+
+**batch-generate.sh / quality-gate.sh:** Added `pipefail`, `PROJECT_ROOT` portability (resolves via `MANTINE_WORK_DIR` env var with script-relative fallback), and `|| true` / `|| echo 0` guards on grep pipelines.
+
+**README.md:** Initial project README added — overview, prerequisites, all three workflows (MCP, single-component, batch), quality gates table, project structure, tech stack, and pointers to CLAUDE.md and CHANGELOG.md.
+
+---
+
 ## [0.45.0] — 2026-04-10
 
 ### Improved — Stage behavioral contracts and critical-rules placement in agent prompts
