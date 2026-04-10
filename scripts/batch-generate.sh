@@ -8,7 +8,7 @@
 #   ./batch-generate.sh components.txt
 #   ./batch-generate.sh Button "https://..." TextInput "https://..."
 
-set -e
+set -eo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -35,9 +35,9 @@ extract_plan_signals() {
 
   # Severity counts — match **Severity:* lines containing each emoji, skip None detected
   local BLOCKS ADAPTS NOTES
-  BLOCKS=$(grep '\*\*Severity:.*🔴' "$PLAN" 2>/dev/null | grep -v 'None detected' | wc -l | tr -d ' ')
-  ADAPTS=$(grep '\*\*Severity:.*🟡' "$PLAN" 2>/dev/null | grep -v 'None detected' | wc -l | tr -d ' ')
-  NOTES=$(grep '\*\*Severity:.*🔵' "$PLAN" 2>/dev/null  | grep -v 'None detected' | wc -l | tr -d ' ')
+  BLOCKS=$(grep '\*\*Severity:.*🔴' "$PLAN" 2>/dev/null | grep -v 'None detected' | wc -l | tr -d ' ' || echo 0)
+  ADAPTS=$(grep '\*\*Severity:.*🟡' "$PLAN" 2>/dev/null | grep -v 'None detected' | wc -l | tr -d ' ' || echo 0)
+  NOTES=$(grep '\*\*Severity:.*🔵' "$PLAN" 2>/dev/null  | grep -v 'None detected' | wc -l | tr -d ' ' || echo 0)
 
   # Node type — "not a Component Set" negation beats positive match
   local NODE_TYPE
@@ -98,7 +98,7 @@ diff_plan_summary() {
   echo "regen|${PREV_PLAN}|+${ADDED}/-${REMOVED} lines"
 }
 
-PROJECT_ROOT=~/Documents/figma-ai-project
+PROJECT_ROOT="${MANTINE_WORK_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

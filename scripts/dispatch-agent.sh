@@ -11,7 +11,7 @@
 #   Plan file: logs/plan-{Component}-{ts}.md
 #   Stage 2+3: logs/generate-{Component}-{ts}-stage23.log
 
-set -e
+set -eo pipefail
 
 # Ensure Herd/NVM node binaries (including claude CLI) are on PATH
 export PATH="/Users/alexwood/Library/Application Support/Herd/config/nvm/versions/node/v24.13.1/bin:$PATH"
@@ -32,7 +32,7 @@ AUTO_APPROVE=false
 STAGE=1          # default: run Stage 1 only
 PLAN_FILE=""     # set by --plan= or auto-discovered for --stage2
 PLAN_ONLY=false  # set by --plan-only (batch use: Stage 1 only, no interactive gate)
-PROJECT_ROOT=~/Documents/figma-ai-project
+PROJECT_ROOT="${MANTINE_WORK_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 for arg in "$@"; do
   case "$arg" in
@@ -169,7 +169,7 @@ HTTP_STATUS=$(curl -s -o /tmp/mantine-llms-fresh.txt -w "%{http_code}" \
 
 if [ "$HTTP_STATUS" = "200" ]; then
   mv /tmp/mantine-llms-fresh.txt "$LLMS_FILE"
-  grep -i "^etag:" /tmp/mantine-llms-headers.txt | awk '{print $2}' | tr -d '\r' > "$ETAG_FILE"
+  grep -i "^etag:" /tmp/mantine-llms-headers.txt | awk '{print $2}' | tr -d '\r' > "$ETAG_FILE" || true
   echo -e "${GREEN}✅ mantine-llms.txt updated (HTTP 200)${NC}"
 elif [ "$HTTP_STATUS" = "304" ]; then
   echo -e "${GREEN}✅ mantine-llms.txt unchanged (HTTP 304 — using cached copy)${NC}"
@@ -187,7 +187,7 @@ fi  # end SKIP_LLMS_REFRESH check
 # ─── Extract component API section ────────────────────────────────────────────
 COMPONENT_API_SECTION=""
 if [ -f "$LLMS_FILE" ]; then
-  START_LINE=$(grep -n "^### ${COMPONENT}$" "$LLMS_FILE" | head -1 | cut -d: -f1)
+  START_LINE=$(grep -n "^### ${COMPONENT}$" "$LLMS_FILE" | head -1 | cut -d: -f1 || true)
   if [ -n "$START_LINE" ]; then
     END_LINE=$(awk "NR>$START_LINE && /^### /{print NR; exit}" "$LLMS_FILE")
     if [ -n "$END_LINE" ]; then
@@ -214,42 +214,49 @@ run_stage1() {
   echo -e "${BLUE}MCP Config:${NC} $MCP_CONFIG"
   echo ""
 
+  # Build prompt in a temp file so file contents are written with cat (no shell
+  # expansion) rather than via an unquoted heredoc (which would expand backticks
+  # and $(...) sequences found in AGENT-CLAUDE.md or mantine-llms.txt).
+  local PROMPT_FILE
+  PROMPT_FILE=$(mktemp /tmp/mantine-stage1-XXXXXX.txt)
+
+  {
+    printf '%s\n' \
+      "You are a specialized component generation agent running STAGE 1 (PLAN) only." \
+      "Do NOT generate any code files. Do NOT write to the filesystem." \
+      "" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
+      "PROJECT RULES & GOTCHAS (CLAUDE.md)" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cat "$CLAUDE_MD"
+    printf '\n%s\n%s\n%s\n' \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
+      "STAGE 1 WORKFLOW (stage1-prompt.md)" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cat "$STAGE1_PROMPT"
+    printf '\n%s\n%s\n%s\n' \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
+      "STYLE GUIDE (style_guide.md)" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cat "$STYLE_GUIDE"
+    printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    printf 'MANTINE API: %s\n' "$COMPONENT"
+    printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    printf '%s\n' "$COMPONENT_API_SECTION"
+    printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    printf '\nComponent to plan:\n'
+    printf '- Name: %s\n' "$COMPONENT"
+    printf '- Figma: %s\n' "$FIGMA_LINK"
+    printf '- Output dir (for Stage 2): %s/02-generated/%s/\n' "$PROJECT_ROOT" "$COMPONENT"
+    printf '\nBegin Stage 1 now. Follow the workflow above. End with your plan inside <STAGE1_PLAN> markers.\n'
+  } > "$PROMPT_FILE"
+
   set +e
   claude --print --dangerously-skip-permissions \
-    --mcp-config "$MCP_CONFIG" > "$LOG_FILE" 2>&1 << STAGE1_TASK
-You are a specialized component generation agent running STAGE 1 (PLAN) only.
-Do NOT generate any code files. Do NOT write to the filesystem.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PROJECT RULES & GOTCHAS (CLAUDE.md)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$(cat "$CLAUDE_MD")
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STAGE 1 WORKFLOW (stage1-prompt.md)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$(cat "$STAGE1_PROMPT")
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STYLE GUIDE (style_guide.md)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$(cat "$STYLE_GUIDE")
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MANTINE API: $COMPONENT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$COMPONENT_API_SECTION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Component to plan:
-- Name: $COMPONENT
-- Figma: $FIGMA_LINK
-- Output dir (for Stage 2): $PROJECT_ROOT/02-generated/$COMPONENT/
-
-Begin Stage 1 now. Follow the workflow above. End with your plan inside <STAGE1_PLAN> markers.
-STAGE1_TASK
+    --mcp-config "$MCP_CONFIG" < "$PROMPT_FILE" > "$LOG_FILE" 2>&1
   STAGE1_EXIT=$?
   set -e
+  rm -f "$PROMPT_FILE"
 
   if [ $STAGE1_EXIT -ne 0 ]; then
     echo -e "${RED}❌ Stage 1 agent failed (exit $STAGE1_EXIT)${NC}"
@@ -418,50 +425,54 @@ run_stage23() {
   echo -e "${YELLOW}⏳ This may take 15-20 minutes...${NC}"
   echo ""
 
-  PLAN_CONTENT=$(cat "$PLAN_FILE")
+  # Build prompt in a temp file — same rationale as run_stage1: avoids shell
+  # expansion of file contents (AGENT-CLAUDE.md, stage23-prompt.md, plan file).
+  # Also avoids storing the full plan in a shell variable (no size limit risk).
+  local PROMPT_FILE
+  PROMPT_FILE=$(mktemp /tmp/mantine-stage23-XXXXXX.txt)
+
+  {
+    printf '%s\n' \
+      "You are a specialized component generation agent running STAGE 2 (ACT) + STAGE 3 (REFLECT)." \
+      "The Stage 1 plan below has been approved by a human. Implement it exactly." \
+      "" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
+      "PROJECT RULES & GOTCHAS (CLAUDE.md)" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cat "$CLAUDE_MD"
+    printf '\n%s\n%s\n%s\n' \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
+      "STAGE 2+3 WORKFLOW (stage23-prompt.md)" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cat "$STAGE23_PROMPT"
+    printf '\n%s\n%s\n%s\n' \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
+      "STYLE GUIDE (style_guide.md)" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cat "$STYLE_GUIDE"
+    printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    printf 'MANTINE API: %s\n' "$COMPONENT"
+    printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    printf '%s\n' "$COMPONENT_API_SECTION"
+    printf '\n%s\n%s\n%s\n' \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" \
+      "STAGE 1 PLAN (approved — implement this)" \
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cat "$PLAN_FILE"
+    printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    printf '\nComponent:\n'
+    printf '- Name: %s\n' "$COMPONENT"
+    printf '- Figma: %s (reference only — do NOT call any Figma MCP tools)\n' "$FIGMA_LINK"
+    printf '- Output dir: %s/02-generated/%s/\n' "$PROJECT_ROOT" "$COMPONENT"
+    printf '\nBegin Stage 2 now. Generate all 4 files, then run all Stage 3 quality gates.\n'
+  } > "$PROMPT_FILE"
 
   set +e
   # Note: --mcp-config intentionally omitted — no Figma access in Stage 2+3
-  claude --print --dangerously-skip-permissions > "$LOG_FILE_23" 2>&1 << STAGE23_TASK
-You are a specialized component generation agent running STAGE 2 (ACT) + STAGE 3 (REFLECT).
-The Stage 1 plan below has been approved by a human. Implement it exactly.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PROJECT RULES & GOTCHAS (CLAUDE.md)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$(cat "$CLAUDE_MD")
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STAGE 2+3 WORKFLOW (stage23-prompt.md)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$(cat "$STAGE23_PROMPT")
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STYLE GUIDE (style_guide.md)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$(cat "$STYLE_GUIDE")
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MANTINE API: $COMPONENT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$COMPONENT_API_SECTION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STAGE 1 PLAN (approved — implement this)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-$PLAN_CONTENT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Component:
-- Name: $COMPONENT
-- Figma: $FIGMA_LINK (reference only — do NOT call any Figma MCP tools)
-- Output dir: $PROJECT_ROOT/02-generated/$COMPONENT/
-
-Begin Stage 2 now. Generate all 4 files, then run all Stage 3 quality gates.
-STAGE23_TASK
+  claude --print --dangerously-skip-permissions < "$PROMPT_FILE" > "$LOG_FILE_23" 2>&1
   STAGE23_EXIT=$?
   set -e
+  rm -f "$PROMPT_FILE"
 
   if [ $STAGE23_EXIT -ne 0 ]; then
     echo -e "${RED}❌ Stage 2+3 agent failed (exit $STAGE23_EXIT)${NC}"

@@ -4,7 +4,7 @@
 #
 # Output: one line per gate (PASS/FAIL/WARN/SKIP/N/A), details only on failure.
 
-set -e
+set -eo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,7 +14,7 @@ NC='\033[0m'
 
 COMPONENT=$1
 SKIP_DEPS=false
-PROJECT_ROOT=~/Documents/figma-ai-project
+PROJECT_ROOT="${MANTINE_WORK_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 BASE_DIR=$PROJECT_ROOT/02-generated/$COMPONENT
 
 if [ "$2" = "--skip-deps" ]; then
