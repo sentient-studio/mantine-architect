@@ -1,0 +1,98 @@
+.root {
+  /* ── Size defaults (md) — must be declared BEFORE nested [data-size] selectors ── */
+  --btn-height: rem(38px);
+  --btn-fz: var(--mantine-font-size-sm);
+  --btn-px: var(--mantine-spacing-md);
+
+  /* ── Size variants ── */
+  &:where([data-size='xs']) {
+    --btn-height: rem(30px);
+    --btn-fz: var(--mantine-font-size-xs);
+    --btn-px: var(--mantine-spacing-sm);
+  }
+
+  &:where([data-size='sm']) {
+    --btn-height: rem(34px);
+    --btn-fz: var(--mantine-font-size-sm);
+    --btn-px: var(--mantine-spacing-sm);
+  }
+
+  &:where([data-size='md']) {
+    --btn-height: rem(38px);
+    --btn-fz: var(--mantine-font-size-sm);
+    --btn-px: var(--mantine-spacing-md);
+  }
+
+  &:where([data-size='lg']) {
+    --btn-height: rem(44px);
+    --btn-fz: var(--mantine-font-size-md);
+    --btn-px: var(--mantine-spacing-lg);
+  }
+
+  &:where([data-size='xl']) {
+    --btn-height: rem(52px);
+    --btn-fz: var(--mantine-font-size-lg);
+    --btn-px: var(--mantine-spacing-xl);
+  }
+
+  /* ── Base styles ── */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: var(--btn-height);
+  padding-inline: var(--btn-px);
+  border-radius: var(--mantine-radius-sm);
+  background-color: var(--mantine-color-blue-8);
+  color: var(--mantine-color-white);
+  font-size: var(--btn-fz);
+  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  white-space: nowrap;
+
+  /* ── Hover (active state only) ── */
+  @mixin hover {
+    &:where(:not([data-loading], :disabled, [data-disabled])) {
+      background-color: var(--mantine-color-blue-9);
+    }
+  }
+
+  /* ── Disabled state ── */
+  &:where([data-disabled], :disabled:not([data-loading])) {
+    cursor: not-allowed;
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  }
+
+  /* ── Loading state ── */
+  &:where([data-loading]) {
+    cursor: not-allowed;
+
+    & .inner {
+      opacity: 0;
+    }
+  }
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: rem(8px);
+  transition: opacity 150ms ease;
+}
+
+.label {
+  white-space: nowrap;
+}
+
+.chevron {
+  flex-shrink: 0;
+}
+
+.loader {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}

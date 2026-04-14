@@ -25,6 +25,13 @@ CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
 NC='\033[0m'
 
+# ─── Models ───────────────────────────────────────────────────────────────────
+# Stage 1 always uses Sonnet — spatial inference + constitutional reasoning.
+# Stage 2+3 is routed by select_stage23_model(): Haiku for simple components
+# (0 conflicts, plan < 12 KB), Sonnet for everything else.
+SONNET_MODEL="claude-sonnet-4-6"
+HAIKU_MODEL="claude-haiku-4-5-20251001"
+
 # ─── Arguments ────────────────────────────────────────────────────────────────
 COMPONENT=$1
 FIGMA_LINK=$2
@@ -255,6 +262,7 @@ run_stage1() {
 
   set +e
   claude --print --dangerously-skip-permissions \
+    --model "$SONNET_MODEL" \
     --mcp-config "$MCP_CONFIG" < "$PROMPT_FILE" > "$LOG_FILE" 2>&1
   STAGE1_EXIT=$?
   set -e
@@ -332,6 +340,126 @@ extract_plan_from_log() {
   run_figma_pushback
 }
 
+validate_pushback_json() {
+  # Schema-validates a PUSHBACK JSON array.
+  # Strips items with missing required fields, invalid severity (must be BLOCK|ADAPT),
+  # or invalid category (must be A–E). Warnings go to stderr; cleaned JSON to stdout.
+  local json_in="$1"
+  python3 -c "
+import json, sys
+
+VALID_SEV = {'BLOCK', 'ADAPT'}
+VALID_CAT = {'A', 'B', 'C', 'D', 'E'}
+REQUIRED  = {'node_id', 'severity', 'category', 'summary', 'detail'}
+
+try:
+    items = json.loads(sys.argv[1])
+except Exception as e:
+    print('WARNING: PARSE_ERROR: ' + str(e), file=sys.stderr)
+    sys.exit(1)
+
+valid = []
+for i, item in enumerate(items):
+    missing = REQUIRED - set(item.keys())
+    if missing:
+        print('WARNING: item ' + str(i) + ' missing fields: ' + str(sorted(missing)), file=sys.stderr)
+        continue
+    if item['severity'] not in VALID_SEV:
+        print('WARNING: item ' + str(i) + ' invalid severity \"' + item['severity'] + '\" (must be BLOCK|ADAPT)', file=sys.stderr)
+        continue
+    if item['category'] not in VALID_CAT:
+        print('WARNING: item ' + str(i) + ' invalid category \"' + item['category'] + '\" (must be A-E)', file=sys.stderr)
+        continue
+    valid.append(item)
+
+print(json.dumps(valid))
+" "$json_in"
+}
+
+rewrite_pushback_prose() {
+  # Rewrites the "detail" field of each PUSHBACK item using Haiku — assertive
+  # architect persona, active voice, constraint-led. Non-fatal: falls back to
+  # the original JSON if the rewrite fails or produces malformed output.
+  # Skip with SKIP_PUSHBACK_PROSE_REWRITE=1 (used in tests and CI).
+  local json_in="$1"
+
+  if [ "${SKIP_PUSHBACK_PROSE_REWRITE:-}" = "1" ]; then
+    echo "$json_in"
+    return 0
+  fi
+
+  local PROSE_PROMPT_FILE PROSE_OUT_FILE ORIG_JSON_FILE
+  PROSE_PROMPT_FILE=$(mktemp /tmp/mantine-prose-prompt-XXXXXX)
+  PROSE_OUT_FILE=$(mktemp /tmp/mantine-prose-out-XXXXXX)
+  ORIG_JSON_FILE=$(mktemp /tmp/mantine-prose-orig-XXXXXX)
+  echo "$json_in" > "$ORIG_JSON_FILE"
+
+  {
+    printf '%s\n\n%s\n' \
+      'You are the Mantine Architect — a senior front-end architect reviewing design decisions with authority and precision.
+
+Rewrite the "detail" field of each item in the JSON array below. Keep 2–4 sentences per item. Lead with the constraint (why Mantine or the web platform forces this change). Use active voice. Preserve technical accuracy.
+
+Rules:
+- Do NOT change node_id, severity, category, or summary
+- Output ONLY a valid JSON array — no prose, no markdown fences, no commentary' \
+      "$json_in"
+  } > "$PROSE_PROMPT_FILE"
+
+  set +e
+  claude --print --dangerously-skip-permissions --model "$HAIKU_MODEL" \
+    < "$PROSE_PROMPT_FILE" > "$PROSE_OUT_FILE" 2>/dev/null
+  PROSE_EXIT=$?
+  set -e
+  rm -f "$PROSE_PROMPT_FILE"
+
+  if [ $PROSE_EXIT -ne 0 ]; then
+    echo -e "${YELLOW}⚠️  Prose rewrite agent failed (exit $PROSE_EXIT) — using original${NC}" >&2
+    rm -f "$PROSE_OUT_FILE" "$ORIG_JSON_FILE"
+    echo "$json_in"
+    return 0
+  fi
+
+  # Extract JSON array from response; validate structure, item count, and that
+  # only the 'detail' field changed (structural fields must be preserved exactly).
+  local REWRITTEN
+  REWRITTEN=$(python3 -c "
+import json, sys, re
+
+prose_out = open(sys.argv[1]).read()
+orig      = json.load(open(sys.argv[2]))
+
+m = re.search(r'\[[\s\S]*\]', prose_out)
+if not m:
+    sys.exit(1)
+
+try:
+    rewritten = json.loads(m.group(0))
+except Exception:
+    sys.exit(1)
+
+if len(rewritten) != len(orig):
+    sys.exit(1)
+
+for new_item, orig_item in zip(rewritten, orig):
+    for f in ('node_id', 'severity', 'category', 'summary'):
+        if new_item.get(f) != orig_item.get(f):
+            sys.exit(1)
+
+print(json.dumps(rewritten))
+" "$PROSE_OUT_FILE" "$ORIG_JSON_FILE" 2>/dev/null) || true
+
+  rm -f "$PROSE_OUT_FILE" "$ORIG_JSON_FILE"
+
+  if [ -n "$REWRITTEN" ]; then
+    echo -e "${CYAN}✍️  Prose rewrite applied (Haiku)${NC}"
+    echo "$REWRITTEN"
+  else
+    echo -e "${YELLOW}⚠️  Prose rewrite produced invalid output — using original${NC}" >&2
+    echo "$json_in"
+  fi
+}
+
 run_figma_pushback() {
   local PUSHBACK_RAW
   # tr -d '\n' compacts multi-line JSON; sed trims leading/trailing whitespace.
@@ -361,6 +489,30 @@ except:
     return 0
   fi
 
+  # ── Validation pass (Haiku utility) ─────────────────────────────────────────
+  # Strip items with missing fields, invalid severity, or invalid category.
+  local VALIDATED VALIDATE_WARNINGS_FILE
+  VALIDATE_WARNINGS_FILE=$(mktemp /tmp/mantine-validate-warn-XXXXXX)
+  VALIDATED=$(validate_pushback_json "$PUSHBACK_RAW" 2>"$VALIDATE_WARNINGS_FILE") || true
+  if [ -s "$VALIDATE_WARNINGS_FILE" ]; then
+    while IFS= read -r warn_line; do
+      echo -e "${YELLOW}⚠️  PUSHBACK validation: $warn_line${NC}"
+    done < "$VALIDATE_WARNINGS_FILE"
+  fi
+  rm -f "$VALIDATE_WARNINGS_FILE"
+
+  if [ -z "$VALIDATED" ] || [ "$VALIDATED" = "[]" ]; then
+    echo -e "${YELLOW}⚠️  No valid PUSHBACK items after validation — skipping Figma comments${NC}"
+    return 0
+  fi
+
+  COUNT=$(python3 -c "import json,sys; print(len(json.loads(sys.argv[1])))" "$VALIDATED" 2>/dev/null || echo "0")
+
+  # ── Prose rewrite pass (Haiku) ───────────────────────────────────────────────
+  # Rewrites 'detail' fields into assertive architect persona. Non-fatal.
+  local PUSHBACK_FINAL
+  PUSHBACK_FINAL=$(rewrite_pushback_prose "$VALIDATED")
+
   # Extract file key from Figma URL (supports both /file/ and /design/ formats)
   local FILE_KEY
   FILE_KEY=$(echo "$FIGMA_LINK" | python3 -c "
@@ -382,7 +534,7 @@ print(m.group(1) if m else '')
   fi
 
   echo -e "${CYAN}💬 Posting ${COUNT} conflict comment$([ "$COUNT" -ne 1 ] && echo s) to Figma...${NC}"
-  bash "$PUSHBACK_SCRIPT" "$FILE_KEY" "$FIGMA_LINK" "$PUSHBACK_RAW" || \
+  bash "$PUSHBACK_SCRIPT" "$FILE_KEY" "$FIGMA_LINK" "$PUSHBACK_FINAL" || \
     echo -e "${YELLOW}⚠️  Figma pushback failed (non-fatal — plan was saved successfully)${NC}"
 }
 
@@ -414,15 +566,51 @@ show_approval_gate() {
   fi
 }
 
+select_stage23_model() {
+  # Returns the model ID to use for Stage 2+3 based on plan complexity.
+  # Haiku:  0 BLOCK + 0 ADAPT conflicts AND plan file < 12 KB
+  # Sonnet: any conflict (🔴 or 🟡) OR plan ≥ 12 KB
+  local plan_file="$1"
+  local plan_bytes block_count adapt_count
+  plan_bytes=$(wc -c < "$plan_file" | tr -d ' ')
+  block_count=$(grep -c "Severity:.*🔴" "$plan_file" 2>/dev/null || true)
+  adapt_count=$(grep -c "Severity:.*🟡" "$plan_file" 2>/dev/null || true)
+
+  if [ "${block_count:-0}" = "0" ] && [ "${adapt_count:-0}" = "0" ] && [ "$plan_bytes" -lt 12288 ]; then
+    echo "$HAIKU_MODEL"
+  else
+    echo "$SONNET_MODEL"
+  fi
+}
+
 run_stage23() {
   # New log file and timestamp for Stage 2+3
   TIMESTAMP2=$(date '+%Y%m%d-%H%M%S')
   LOG_FILE_23="$LOGS_DIR/generate-$COMPONENT-${TIMESTAMP2}-stage23.log"
 
+  # ── Model selection ───────────────────────────────────────────────────────────
+  local STAGE23_MODEL _plan_bytes _block_count _adapt_count _plan_kb _reason
+  _plan_bytes=$(wc -c < "$PLAN_FILE" | tr -d ' ')
+  _block_count=$(grep -c "Severity:.*🔴" "$PLAN_FILE" 2>/dev/null || true)
+  _adapt_count=$(grep -c "Severity:.*🟡" "$PLAN_FILE" 2>/dev/null || true)
+  _plan_kb=$(( (_plan_bytes + 512) / 1024 ))
+  STAGE23_MODEL=$(select_stage23_model "$PLAN_FILE")
+
+  if [ "$STAGE23_MODEL" = "$HAIKU_MODEL" ]; then
+    _reason="${_block_count}🔴 ${_adapt_count}🟡 · ${_plan_kb}K — routed to Haiku"
+  elif [ "${_block_count:-0}" -gt 0 ]; then
+    _reason="${_block_count}🔴 conflicts — requires Sonnet"
+  elif [ "${_adapt_count:-0}" -gt 0 ]; then
+    _reason="${_block_count}🔴 ${_adapt_count}🟡 conflicts — requires Sonnet"
+  else
+    _reason="${_plan_kb}K plan (≥12K) — requires Sonnet"
+  fi
+
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo -e "${CYAN}🔨 Launching Stage 2+3 (Act + Reflect)${NC}"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo -e "${BLUE}Stage 2+3 log:${NC} $LOG_FILE_23"
+  echo -e "${BLUE}Model:${NC}         $STAGE23_MODEL  ($_reason)"
   echo ""
   echo -e "${YELLOW}⏳ This may take 15-20 minutes...${NC}"
   echo ""
@@ -473,8 +661,9 @@ run_stage23() {
   } > "$PROMPT_FILE"
 
   set +e
-  # Note: --mcp-config intentionally omitted — no Figma access in Stage 2+3
-  claude --print --dangerously-skip-permissions < "$PROMPT_FILE" > "$LOG_FILE_23" 2>&1
+  # --mcp-config intentionally omitted — no Figma access in Stage 2+3
+  claude --print --dangerously-skip-permissions \
+    --model "$STAGE23_MODEL" < "$PROMPT_FILE" > "$LOG_FILE_23" 2>&1
   STAGE23_EXIT=$?
   set -e
   rm -f "$PROMPT_FILE"

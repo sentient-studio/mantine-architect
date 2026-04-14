@@ -5,6 +5,57 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.48.0] — 2026-04-13
+
+### Added — Agent sharding: model routing + PUSHBACK validation + prose rewrite
+
+Four new capabilities in `scripts/dispatch-agent.sh`, all covered by 12 new tests (T30–T41, 52 total).
+
+**#1 — Explicit model pinning**
+Both `claude` invocations now pass `--model` explicitly instead of relying on the CLI default. Stage 1 is pinned to `claude-sonnet-4-6` (spatial inference + constitutional reasoning require it). Stage 2+3 is routed dynamically.
+
+**#2 — Stage 2+3 complexity-based model routing (`select_stage23_model()`)**
+New function reads the approved plan file and returns the model to use:
+- **Haiku** (`claude-haiku-4-5-20251001`): 0🔴 0🟡 conflicts AND plan < 12 KB — simple components with no adaptations
+- **Sonnet** (`claude-sonnet-4-6`): any BLOCK/ADAPT conflict OR plan ≥ 12 KB
+
+The selected model and routing reason are printed at Stage 2+3 launch:
+```
+Model: claude-haiku-4-5-20251001  (0🔴 0🟡 · 9K — routed to Haiku)
+Model: claude-sonnet-4-6          (2🟡 conflicts — requires Sonnet)
+```
+
+**#3 — PUSHBACK schema validation (`validate_pushback_json()`)**
+Before posting to Figma, the `<PUSHBACK>` block is validated by a new python3 pass. Items are stripped (with warnings) if they have missing required fields, invalid severity (anything other than `BLOCK`/`ADAPT` — e.g. `NOTE` which agents occasionally emit), or invalid category (outside A–E). Clean items proceed; the full run is non-fatal regardless.
+
+**#4 — PUSHBACK prose rewrite (`rewrite_pushback_prose()`)**
+After validation, a Haiku agent rewrites the `detail` field of each item into assertive architect persona — constraint-led, active voice, 2–4 sentences. Structural fields (`node_id`, `severity`, `category`, `summary`) are immutable; the rewrite is rejected and the original is used if Haiku returns wrong item count or mutates any structural field. Skip with `SKIP_PUSHBACK_PROSE_REWRITE=1` (used in tests).
+
+**Test additions:** sections 6–8 added to `test-figma-pushback.sh`:
+- Section 6 (T30–T33): `select_stage23_model()` routing matrix
+- Section 7 (T34–T39): `validate_pushback_json()` — valid pass-through, missing fields, invalid severity, invalid category, mixed input
+- Section 8 (T40–T41): `rewrite_pushback_prose()` skip behaviour
+
+---
+
+## [0.47.0] — 2026-04-13
+
+### Added — ButtonMenu component
+
+New component at `02-generated/ButtonMenu/` generated from [Figma node 116:1726](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=116-1726).
+
+**Architecture:** `UnstyledButton` trigger + Mantine `Menu` dropdown. `width="target"` keeps dropdown width matched to the trigger. `position="bottom-start"` and `offset={4}` match the Figma layout exactly. `withBorder` adds the explicit border the Figma shows (not a Mantine default). Font-weight set explicitly to 400 (Figma Regular; Mantine themes can inherit 600).
+
+**Props:** `label`, `items: ButtonMenuItem[]`, `onItemClick`, `disabled`, `loading`, `size` (full `MantineSize` cascade). Items support optional `icon`, `onClick`, and `disabled`.
+
+**Stories:** Default, Showcase, WithoutIcons, Disabled, Sizes, Open (Playwright fixture).
+
+**A11y fix:** `Menu.Dropdown` uses `keepMounted` so the portal element stays in the DOM when closed — axe can verify the `aria-controls` reference on the trigger button without a false-positive `aria-valid-attr-value` incomplete.
+
+**Quality gates:** 9/9 passing (dep audit skipped, portal CSS scope N/A).
+
+---
+
 ## [0.46.0] — 2026-04-10
 
 ### Fixed — documentation and shell script hardening

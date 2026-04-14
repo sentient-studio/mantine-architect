@@ -64,7 +64,9 @@ Stage 1 automatically posts architectural conflict comments back to Figma when t
 
 **How it works:**
 1. Stage 1 agent emits `<PUSHBACK>[…]</PUSHBACK>` after `<STAGE1_PLAN>` for any 🔴 or 🟡 conflict
-2. `dispatch-agent.sh::run_figma_pushback()` extracts the block, validates it, and calls `figma-pushback.sh`
+2. `dispatch-agent.sh::run_figma_pushback()` extracts the block, then runs two Haiku utility passes:
+   - **Validation** (`validate_pushback_json()`): strips items with missing fields, invalid severity (must be `BLOCK`/`ADAPT`), or invalid category (must be A–E); warns inline
+   - **Prose rewrite** (`rewrite_pushback_prose()`): Haiku rewrites each `detail` field into assertive architect voice — constraint-led, active voice; falls back to original on any failure; skip with `SKIP_PUSHBACK_PROSE_REWRITE=1`
 3. `figma-pushback.sh` posts a REST comment to `POST /v1/files/:key/comments` anchored to the node
 
 **`<PUSHBACK>` block format** (emitted by Stage 1 agents):
@@ -106,7 +108,7 @@ FIGMA_ACCESS_TOKEN="" ./scripts/figma-pushback.sh FILE_KEY FIGMA_URL '[{...}]' -
 
 **Test suite:**
 ```bash
-./scripts/test-figma-pushback.sh   # 39 tests, all sections
+./scripts/test-figma-pushback.sh   # 52 tests, 8 sections
 ```
 
 ---
@@ -125,7 +127,7 @@ An MCP server that wraps `dispatch-agent.sh` so the entire Plan → Generate pip
 | `mantine_get_plan` | Read the full plan markdown after `mantine_plan` completes. |
 | `mantine_get_files` | Read all 4 generated files after `mantine_generate` completes. |
 
-### Performance optimisations (v1.1.0)
+### Performance optimisations (v1.2.0)
 
 | # | Optimisation | Saving |
 |---|---|---|
@@ -133,6 +135,7 @@ An MCP server that wraps `dispatch-agent.sh` so the entire Plan → Generate pip
 | 2 | Job state persisted to `logs/mcp-jobs.json` | Survives MCP server restarts |
 | 3 | `mantine_plan` returns cached plan when < 24 h old and same node-id | Stage 1 skipped entirely on repeat calls |
 | 4 | `SKIP_LLMS_REFRESH=1` set when `mantine-llms.txt` is < 6 h old | Eliminates curl round-trip |
+| 5 | Stage 2+3 routed to Haiku for 0-conflict plans < 12 KB (`select_stage23_model()`) | ~60–70% token cost reduction on simple components |
 
 ### Setup
 
@@ -420,6 +423,7 @@ These produce no errors — the only signal is a broken visual or wrong value.
 | `aria-label` on simple `<Drawer>` for header-less dialog | `aria-dialog-name` a11y violation — the simple `Drawer` form spreads HTML props to the outer root div, not the `section[role="dialog"]` | For header-less drawers, use Mantine's compound API: `<MantineDrawer.Root>` + `<MantineDrawer.Content aria-label="…">`. The compound `Content` component accepts HTML attributes directly on the dialog section. |
 | `color-contrast` axe violation on disabled state | False positive — axe flags dim text in disabled inputs even though WCAG 1.4.3 explicitly exempts "inactive user interface components" from contrast requirements | In stories that render a disabled variant (including `Showcase`), add `parameters: { a11y: { config: { rules: [{ id: 'color-contrast', enabled: false }] } } }` with a WCAG comment. In Playwright specs, add `.disableRules(['color-contrast'])` to axe scans of the disabled story. Never change the CSS — the low contrast is intentional. |
 | Missing JSDoc on component function | Storybook autodocs page shows blank description — no error, no warning, just empty | Add a JSDoc block on the primary exported function in `<Name>.tsx`. See Component Patterns → JSDoc section. |
+| `Menu.Dropdown` without `keepMounted` | axe `aria-valid-attr-value` incomplete — trigger button's `aria-controls` references a portal element that doesn't exist in the DOM when the menu is closed | Add `keepMounted` to `<Menu.Dropdown>` so the portal element is always present for axe to verify. |
 | `action: 'clicked'` in argTypes | Orphaned control in SB8 Controls panel — registers the entry but doesn't wire to anything; `action:` key is SB7 syntax | Use `table: { disable: true }` for event props inherited from HTML attributes (e.g. `onClick`). For props you want to spy on, pass `fn()` from `@storybook/test` directly in story `args`. |
 | Inherited Mantine prop type shows `unknown` in autodocs | Storybook cannot introspect `MantineSize`, `MantineShadow`, or any other Mantine union type inherited via `extends MantineXxxProps` — type column shows `unknown` | Add `table: { type: { summary: 'MantineSize' } }` (or the exact union literal) alongside `table: { defaultValue: ... }`. The top-level `type:` field does NOT control the docs table — only `table.type.summary` does. For `size` on overlay/panel components also document token→px in `description`: `xs≈320px, sm≈380px, md≈500px, lg≈620px, xl≈780px`. |
 
@@ -542,6 +546,7 @@ Run via `./scripts/quality-gate.sh <ComponentName> [--skip-deps]`
 | MultiSelect | [node-id=96-4943](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=96-4943) | ✅ 22/22 tests passing |
 | Modal | [node-id=106-985](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=106-985) | ✅ 16/16 tests passing |
 | ContentBox | [node-id=107-1419](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=107-1419) | ✅ 12/12 tests passing |
+| ButtonMenu | [node-id=116-1726](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=116-1726) | ✅ 9/9 quality gates |
 
 ---
 

@@ -17,8 +17,12 @@ logs/mcp-jobs.json
 # MCP server compiled output — run `npm run build` to regenerate
 mantine-architect-mcp/dist/
 
-# Claude Code — local settings (machine-specific paths, allowed bash commands)
+# Claude Code — local settings and machine-specific config
+# settings.local.json: allowed bash commands (accumulated per session, contains local paths)
+# launch.json: preview server config (hardcoded Herd/nvm node path)
+# mcp-config.json is intentionally tracked — referenced by dispatch-agent.sh for Figma MCP access
 .claude/settings.local.json
+.claude/launch.json
 
 # Playwright test artefacts
 test-results/

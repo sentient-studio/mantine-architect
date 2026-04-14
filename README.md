@@ -22,6 +22,12 @@ Point it at a Figma node. It:
 Each stage runs as a separate Claude Code invocation. Stage 1 has Figma MCP access;
 Stage 2+3 receives only the approved plan — no re-querying Figma.
 
+**Model sharding** keeps costs low: Stage 1 is always Sonnet (spatial inference +
+constitutional reasoning). Stage 2+3 is routed automatically — Haiku for simple
+components with no conflicts and a plan under 12 KB, Sonnet for anything with
+architectural conflicts or a complex plan. Conflict comments posted to Figma are
+also rewritten by a Haiku pass into assertive architect prose before posting.
+
 For the full rules, patterns, and gotchas see **[CLAUDE.md](CLAUDE.md)**.
 
 ---
@@ -175,7 +181,8 @@ Logs are written to `logs/`:
 ./scripts/batch-generate.sh components.txt
 ```
 
-Runs Stage 1 for all components in parallel, then opens an interactive review loop:
+Runs Stage 1 for all components in parallel, then opens an interactive review loop.
+The model used for Stage 2+3 is selected per-component based on plan complexity:
 
 ```
 ✅ Select   0🔴 1🟡 2🔵  ·  component set  ·  5 ambiguities  ·  14K
@@ -217,6 +224,30 @@ Also runs automatically as a pre-commit hook on any staged component files.
 | 9 | Dependency Audit | No missing packages or npm vulnerabilities |
 | 10 | Visual Snapshot | `toHaveScreenshot` assertion present in spec |
 | 11 | Portal CSS Variable Scope | Component-scoped CSS vars not leaked into portal classes |
+
+---
+
+## Model sharding
+
+The pipeline uses different Claude models for different tasks to balance quality
+and cost:
+
+| Stage | Model | Rationale |
+|---|---|---|
+| Stage 1 (Plan) | `claude-sonnet-4-6` | Spatial inference, constitutional conflict detection, Figma MCP reasoning |
+| Stage 2+3 — simple | `claude-haiku-4-5-20251001` | 0🔴 0🟡 conflicts + plan < 12 KB — code gen from a complete spec is retrieval, not reasoning |
+| Stage 2+3 — complex | `claude-sonnet-4-6` | Any BLOCK/ADAPT conflict or plan ≥ 12 KB — complexity warrants full reasoning |
+| PUSHBACK validation | python3 (no LLM) | Schema check, field validation, severity/category enum guard |
+| PUSHBACK prose | `claude-haiku-4-5-20251001` | Rewrites dry `detail` fields into assertive architect persona before posting to Figma |
+
+The selected model is printed at Stage 2+3 launch:
+
+```
+Model: claude-haiku-4-5-20251001  (0🔴 0🟡 · 9K — routed to Haiku)
+Model: claude-sonnet-4-6          (2🟡 conflicts — requires Sonnet)
+```
+
+Set `SKIP_PUSHBACK_PROSE_REWRITE=1` to bypass the Haiku prose pass (CI / tests).
 
 ---
 

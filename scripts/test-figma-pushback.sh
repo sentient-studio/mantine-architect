@@ -194,6 +194,18 @@ if [ -z "$START_LINE" ] || [ -z "$END_LINE" ]; then
 else
   sed -n "${START_LINE},${END_LINE}p" "$DISPATCH_SCRIPT" > "$TMP_FN"
 
+  # Also extract helper functions called by run_figma_pushback()
+  TMP_VAL_FN=$(mktemp /tmp/validate_pushback_fn_XXXXXX.sh)
+  TMP_PROSE_FN=$(mktemp /tmp/rewrite_prose_fn_XXXXXX.sh)
+  START_VAL_FN=$(grep -n '^validate_pushback_json()' "$DISPATCH_SCRIPT" | head -1 | cut -d: -f1)
+  END_VAL_FN=$(awk "NR>$START_VAL_FN && /^\}/ {print NR; exit}" "$DISPATCH_SCRIPT")
+  START_PROSE_FN=$(grep -n '^rewrite_pushback_prose()' "$DISPATCH_SCRIPT" | head -1 | cut -d: -f1)
+  END_PROSE_FN=$(awk "NR>$START_PROSE_FN && /^\}/ {print NR; exit}" "$DISPATCH_SCRIPT")
+  [ -n "${START_VAL_FN:-}" ] && [ -n "${END_VAL_FN:-}" ] && \
+    sed -n "${START_VAL_FN},${END_VAL_FN}p" "$DISPATCH_SCRIPT" > "$TMP_VAL_FN"
+  [ -n "${START_PROSE_FN:-}" ] && [ -n "${END_PROSE_FN:-}" ] && \
+    sed -n "${START_PROSE_FN},${END_PROSE_FN}p" "$DISPATCH_SCRIPT" > "$TMP_PROSE_FN"
+
   # Create stub directory layout: $STUB_DIR/scripts/figma-pushback.sh
   STUB_DIR=$(mktemp -d)
   mkdir -p "$STUB_DIR/scripts"
@@ -226,6 +238,12 @@ STUB_EOF
       FIGMA_LINK="$figma_link"
       PROJECT_ROOT="$project_root"
       RED='' GREEN='' YELLOW='' BLUE='' CYAN='' NC=''
+      HAIKU_MODEL="claude-haiku-4-5-20251001"
+      SKIP_PUSHBACK_PROSE_REWRITE=1
+      # shellcheck source=/dev/null
+      source "$TMP_VAL_FN"
+      # shellcheck source=/dev/null
+      source "$TMP_PROSE_FN"
       # shellcheck source=/dev/null
       source "$TMP_FN"
       run_figma_pushback 2>&1
@@ -294,8 +312,194 @@ STUB_EOF
   assert_contains "T29 missing script → 'not found' warning" "not found" "$OUT29"
 
   # Cleanup
-  rm -f "$TMP_FN"
+  rm -f "$TMP_FN" "$TMP_VAL_FN" "$TMP_PROSE_FN"
   rm -rf "$STUB_DIR" "$MISSING_DIR"
+fi
+
+# ─── Section 6: select_stage23_model() ───────────────────────────────────────
+
+echo ""
+echo "── 6. select_stage23_model() ───────────────────────"
+
+TMP_SEL=$(mktemp /tmp/select_stage23_model_XXXXXX.sh)
+START_SEL=$(grep -n '^select_stage23_model()' "$DISPATCH_SCRIPT" | head -1 | cut -d: -f1)
+END_SEL=$(awk "NR>$START_SEL && /^\}/ {print NR; exit}" "$DISPATCH_SCRIPT")
+
+if [ -z "${START_SEL:-}" ] || [ -z "${END_SEL:-}" ]; then
+  echo "  ⚠️  Could not locate select_stage23_model() in dispatch-agent.sh — skipping Section 6"
+else
+  sed -n "${START_SEL},${END_SEL}p" "$DISPATCH_SCRIPT" > "$TMP_SEL"
+
+  SONNET_MODEL="claude-sonnet-4-6"
+  HAIKU_MODEL="claude-haiku-4-5-20251001"
+
+  run_sel() {
+    local content="$1"
+    local tmpf
+    tmpf=$(mktemp)
+    printf '%s\n' "$content" > "$tmpf"
+    local result
+    result=$(
+      SONNET_MODEL="$SONNET_MODEL"
+      HAIKU_MODEL="$HAIKU_MODEL"
+      # shellcheck source=/dev/null
+      source "$TMP_SEL"
+      select_stage23_model "$tmpf"
+    )
+    rm -f "$tmpf"
+    echo "$result"
+  }
+
+  # T30: 0 conflicts + small plan → haiku
+  MODEL30=$(run_sel "$(printf '# Plan\n**Severity: None detected**\n')")
+  [ "$MODEL30" = "$HAIKU_MODEL" ] \
+    && ok "T30 0🔴 0🟡 small plan → haiku" \
+    || fail "T30 → haiku" "got: $MODEL30"
+
+  # T31: BLOCK conflict → sonnet
+  MODEL31=$(run_sel "$(printf '**Severity: 🔴 BLOCK**\n')")
+  [ "$MODEL31" = "$SONNET_MODEL" ] \
+    && ok "T31 1🔴 → sonnet" \
+    || fail "T31 → sonnet" "got: $MODEL31"
+
+  # T32: ADAPT conflict → sonnet
+  MODEL32=$(run_sel "$(printf '**Severity: 🟡 ADAPT**\n')")
+  [ "$MODEL32" = "$SONNET_MODEL" ] \
+    && ok "T32 1🟡 → sonnet" \
+    || fail "T32 → sonnet" "got: $MODEL32"
+
+  # T33: 0 conflicts but plan > 12 KB → sonnet
+  LARGE_CONTENT=$(python3 -c "print('x ' * 7000)")  # ~14 KB
+  MODEL33=$(run_sel "$LARGE_CONTENT")
+  [ "$MODEL33" = "$SONNET_MODEL" ] \
+    && ok "T33 large plan (>12K) → sonnet" \
+    || fail "T33 → sonnet" "got: $MODEL33"
+
+  rm -f "$TMP_SEL"
+fi
+
+# ─── Section 7: validate_pushback_json() ─────────────────────────────────────
+
+echo ""
+echo "── 7. validate_pushback_json() ─────────────────────"
+
+TMP_VAL=$(mktemp /tmp/validate_pushback_XXXXXX.sh)
+START_VAL=$(grep -n '^validate_pushback_json()' "$DISPATCH_SCRIPT" | head -1 | cut -d: -f1)
+END_VAL=$(awk "NR>$START_VAL && /^\}/ {print NR; exit}" "$DISPATCH_SCRIPT")
+
+if [ -z "${START_VAL:-}" ] || [ -z "${END_VAL:-}" ]; then
+  echo "  ⚠️  Could not locate validate_pushback_json() in dispatch-agent.sh — skipping Section 7"
+else
+  sed -n "${START_VAL},${END_VAL}p" "$DISPATCH_SCRIPT" > "$TMP_VAL"
+
+  # Capture stdout (cleaned JSON)
+  run_val() {
+    local json="$1"
+    # shellcheck source=/dev/null
+    source "$TMP_VAL"
+    validate_pushback_json "$json" 2>/dev/null
+  }
+
+  # Capture stderr (warnings only)
+  run_val_warnings() {
+    local json="$1"
+    # shellcheck source=/dev/null
+    source "$TMP_VAL"
+    validate_pushback_json "$json" 2>&1 >/dev/null
+  }
+
+  item_count() { python3 -c "import json,sys; d=json.loads(sys.argv[1]); print(len(d))" "$1" 2>/dev/null || echo "-1"; }
+
+  VALID_ITEM='{"node_id":"1:1","severity":"BLOCK","category":"A","summary":"s","detail":"d"}'
+
+  # T34: valid item passes through unchanged
+  OUT34=$(run_val "[$VALID_ITEM]")
+  [ "$(item_count "$OUT34")" = "1" ] \
+    && ok "T34 valid item passes through" \
+    || fail "T34 valid item" "got: $OUT34"
+
+  # T35: item missing required field → stripped + warning emitted
+  MISSING='{"node_id":"1:1","severity":"BLOCK","category":"A","summary":"s"}'
+  OUT35=$(run_val "[$MISSING]")
+  WARN35=$(run_val_warnings "[$MISSING]")
+  [ "$(item_count "$OUT35")" = "0" ] \
+    && ok "T35 missing field → stripped" \
+    || fail "T35 missing field" "count=$(item_count "$OUT35")"
+  assert_contains "T35 warning emitted" "WARNING" "$WARN35"
+
+  # T36: severity 'NOTE' (not BLOCK|ADAPT) → stripped
+  NOTE_ITEM='{"node_id":"1:1","severity":"NOTE","category":"C","summary":"s","detail":"d"}'
+  OUT36=$(run_val "[$NOTE_ITEM]")
+  [ "$(item_count "$OUT36")" = "0" ] \
+    && ok "T36 severity NOTE → stripped" \
+    || fail "T36 NOTE stripped" "count=$(item_count "$OUT36")"
+
+  # T37: invalid category 'Z' → stripped
+  BAD_CAT='{"node_id":"1:1","severity":"BLOCK","category":"Z","summary":"s","detail":"d"}'
+  OUT37=$(run_val "[$BAD_CAT]")
+  [ "$(item_count "$OUT37")" = "0" ] \
+    && ok "T37 invalid category → stripped" \
+    || fail "T37 bad category" "count=$(item_count "$OUT37")"
+
+  # T38: mix of valid + invalid → only valid item kept
+  MIX_JSON="[$VALID_ITEM, $NOTE_ITEM]"
+  OUT38=$(run_val "$MIX_JSON")
+  [ "$(item_count "$OUT38")" = "1" ] \
+    && ok "T38 mix → only valid item kept" \
+    || fail "T38 mix" "count=$(item_count "$OUT38")"
+
+  # T39: ADAPT severity (valid) → passes through
+  ADAPT_ITEM='{"node_id":"1:1","severity":"ADAPT","category":"B","summary":"s","detail":"d"}'
+  OUT39=$(run_val "[$ADAPT_ITEM]")
+  [ "$(item_count "$OUT39")" = "1" ] \
+    && ok "T39 ADAPT severity (valid) → kept" \
+    || fail "T39 ADAPT" "count=$(item_count "$OUT39")"
+
+  rm -f "$TMP_VAL"
+fi
+
+# ─── Section 8: rewrite_pushback_prose() ─────────────────────────────────────
+
+echo ""
+echo "── 8. rewrite_pushback_prose() ─────────────────────"
+
+TMP_PROSE=$(mktemp /tmp/rewrite_pushback_XXXXXX.sh)
+START_PROSE=$(grep -n '^rewrite_pushback_prose()' "$DISPATCH_SCRIPT" | head -1 | cut -d: -f1)
+END_PROSE=$(awk "NR>$START_PROSE && /^\}/ {print NR; exit}" "$DISPATCH_SCRIPT")
+
+if [ -z "${START_PROSE:-}" ] || [ -z "${END_PROSE:-}" ]; then
+  echo "  ⚠️  Could not locate rewrite_pushback_prose() in dispatch-agent.sh — skipping Section 8"
+else
+  sed -n "${START_PROSE},${END_PROSE}p" "$DISPATCH_SCRIPT" > "$TMP_PROSE"
+
+  PROSE_INPUT='[{"node_id":"1:1","severity":"BLOCK","category":"A","summary":"Test","detail":"Original detail text."}]'
+
+  # T40: SKIP_PUSHBACK_PROSE_REWRITE=1 → returns original JSON unchanged
+  OUT40=$(
+    SKIP_PUSHBACK_PROSE_REWRITE=1
+    HAIKU_MODEL="claude-haiku-4-5-20251001"
+    YELLOW='' NC='' CYAN=''
+    # shellcheck source=/dev/null
+    source "$TMP_PROSE"
+    rewrite_pushback_prose "$PROSE_INPUT" 2>/dev/null
+  )
+  assert_contains "T40 skip → returns original detail" "Original detail text." "$OUT40"
+
+  # T41: SKIP_PUSHBACK_PROSE_REWRITE=1 → exit 0 (non-fatal)
+  EC41=0
+  (
+    SKIP_PUSHBACK_PROSE_REWRITE=1
+    HAIKU_MODEL="claude-haiku-4-5-20251001"
+    YELLOW='' NC='' CYAN=''
+    # shellcheck source=/dev/null
+    source "$TMP_PROSE"
+    rewrite_pushback_prose "$PROSE_INPUT" >/dev/null 2>&1
+  ) || EC41=$?
+  [ "$EC41" = "0" ] \
+    && ok "T41 skip → exit 0" \
+    || fail "T41 exit 0" "got exit $EC41"
+
+  rm -f "$TMP_PROSE"
 fi
 
 # ─── Summary ──────────────────────────────────────────────────────────────────
