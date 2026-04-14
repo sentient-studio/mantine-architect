@@ -1,10 +1,16 @@
 #!/bin/bash
 # Agent Dispatcher for Component Generation
 # Usage: ./dispatch-agent.sh ComponentName FigmaLink [--auto-approve] [--stage2] [--plan=PATH]
+#        ./dispatch-agent.sh ComponentName FigmaLink --escalate [--plan=PATH]
 #
 # Two-invocation architecture:
 #   Invocation 1 (Stage 1): Queries Figma, produces a plan document, stops.
 #   Invocation 2 (Stage 2+3): Receives plan only — no Figma MCP, no Stage 1 history.
+#
+# Escalation (manual escape hatch for stuck components):
+#   --escalate   Two-step: Step 1 fresh Sonnet run → if still failing, Step 2 Opus run.
+#                Implies Stage 2+3 (--stage2 not required separately).
+#                Use after the normal 3-iteration self-healing cycle has failed.
 #
 # Logs:
 #   Stage 1:   logs/generate-{Component}-{ts}.log
@@ -29,16 +35,20 @@ NC='\033[0m'
 # Stage 1 always uses Sonnet — spatial inference + constitutional reasoning.
 # Stage 2+3 is routed by select_stage23_model(): Haiku for simple components
 # (0 conflicts, plan < 12 KB), Sonnet for everything else.
+# Opus: break-glass only — used by --escalate Step 2 after fresh Sonnet fails.
 SONNET_MODEL="claude-sonnet-4-6"
 HAIKU_MODEL="claude-haiku-4-5-20251001"
+OPUS_MODEL="claude-opus-4-5"
 
 # ─── Arguments ────────────────────────────────────────────────────────────────
 COMPONENT=$1
 FIGMA_LINK=$2
 AUTO_APPROVE=false
-STAGE=1          # default: run Stage 1 only
-PLAN_FILE=""     # set by --plan= or auto-discovered for --stage2
-PLAN_ONLY=false  # set by --plan-only (batch use: Stage 1 only, no interactive gate)
+STAGE=1                    # default: run Stage 1 only
+PLAN_FILE=""               # set by --plan= or auto-discovered for --stage2
+PLAN_ONLY=false            # set by --plan-only (batch use: Stage 1 only, no interactive gate)
+ESCALATE=false             # set by --escalate (two-step Sonnet → Opus escape hatch)
+STAGE23_MODEL_OVERRIDE=""  # set by --model= (override automatic routing for one run)
 PROJECT_ROOT="${MANTINE_WORK_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 for arg in "$@"; do
@@ -56,6 +66,14 @@ for arg in "$@"; do
     --plan-only)
       PLAN_ONLY=true
       ;;
+    --escalate)
+      ESCALATE=true
+      STAGE=23
+      ;;
+    --model=*)
+      STAGE23_MODEL_OVERRIDE="${arg#--model=}"
+      STAGE=23
+      ;;
   esac
 done
 
@@ -68,12 +86,16 @@ if [ -z "$COMPONENT" ] || [ -z "$FIGMA_LINK" ]; then
   echo "  --plan-only       Run Stage 1 only, no interactive gate (for batch use)"
   echo "  --stage2          Run Stage 2+3 only (uses most recent plan file for this component)"
   echo "  --plan=PATH       Run Stage 2+3 with a specific plan file"
+  echo "  --escalate        Two-step escape hatch: fresh Sonnet run, then Opus if still failing"
+  echo "  --model=MODEL     Override automatic model routing for this Stage 2+3 run"
   echo ""
   echo "Examples:"
-  echo "  $0 Button 'https://figma.com/design/...'              # Stage 1, then approval gate"
-  echo "  $0 Button 'https://figma.com/design/...' --plan-only  # Stage 1 only (no gate)"
-  echo "  $0 Button 'https://figma.com/design/...' --stage2     # Stage 2+3 after approval"
-  echo "  $0 Button 'https://figma.com/design/...' --auto-approve  # Full run, no gate"
+  echo "  $0 Button 'https://figma.com/design/...'                     # Stage 1, then approval gate"
+  echo "  $0 Button 'https://figma.com/design/...' --plan-only         # Stage 1 only (no gate)"
+  echo "  $0 Button 'https://figma.com/design/...' --stage2            # Stage 2+3 after approval"
+  echo "  $0 Button 'https://figma.com/design/...' --auto-approve      # Full run, no gate"
+  echo "  $0 Button 'https://figma.com/design/...' --escalate          # Escalate stuck component"
+  echo "  $0 Button 'https://figma.com/design/...' --model=claude-opus-4-5  # Force a specific model"
   echo ""
   exit 1
 fi
@@ -92,7 +114,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo -e "${BLUE}Component:${NC} $COMPONENT"
 echo -e "${BLUE}Figma Link:${NC} $FIGMA_LINK"
-echo -e "${BLUE}Stage:${NC} $([ "$STAGE" = "23" ] && echo "2+3 (Act + Reflect)" || ([ "$PLAN_ONLY" = "true" ] && echo "1 (Plan only — no gate)" || echo "1 (Plan)"))"
+echo -e "${BLUE}Stage:${NC} $([ "$ESCALATE" = "true" ] && echo "2+3 ⚡ Escalation (Sonnet → Opus)" || ([ "$STAGE" = "23" ] && echo "2+3 (Act + Reflect)" || ([ "$PLAN_ONLY" = "true" ] && echo "1 (Plan only — no gate)" || echo "1 (Plan)")))"
 echo -e "${BLUE}Auto-approve:${NC} $AUTO_APPROVE"
 echo ""
 
@@ -594,16 +616,21 @@ run_stage23() {
   _block_count=$(grep -c "Severity:.*🔴" "$PLAN_FILE" 2>/dev/null || true)
   _adapt_count=$(grep -c "Severity:.*🟡" "$PLAN_FILE" 2>/dev/null || true)
   _plan_kb=$(( (_plan_bytes + 512) / 1024 ))
-  STAGE23_MODEL=$(select_stage23_model "$PLAN_FILE")
 
-  if [ "$STAGE23_MODEL" = "$HAIKU_MODEL" ]; then
-    _reason="${_block_count}🔴 ${_adapt_count}🟡 · ${_plan_kb}K — routed to Haiku"
-  elif [ "${_block_count:-0}" -gt 0 ]; then
-    _reason="${_block_count}🔴 conflicts — requires Sonnet"
-  elif [ "${_adapt_count:-0}" -gt 0 ]; then
-    _reason="${_block_count}🔴 ${_adapt_count}🟡 conflicts — requires Sonnet"
+  if [ -n "$STAGE23_MODEL_OVERRIDE" ]; then
+    STAGE23_MODEL="$STAGE23_MODEL_OVERRIDE"
+    _reason="manual override via --model="
   else
-    _reason="${_plan_kb}K plan (≥12K) — requires Sonnet"
+    STAGE23_MODEL=$(select_stage23_model "$PLAN_FILE")
+    if [ "$STAGE23_MODEL" = "$HAIKU_MODEL" ]; then
+      _reason="${_block_count}🔴 ${_adapt_count}🟡 · ${_plan_kb}K — routed to Haiku"
+    elif [ "${_block_count:-0}" -gt 0 ]; then
+      _reason="${_block_count}🔴 conflicts — requires Sonnet"
+    elif [ "${_adapt_count:-0}" -gt 0 ]; then
+      _reason="${_block_count}🔴 ${_adapt_count}🟡 conflicts — requires Sonnet"
+    else
+      _reason="${_plan_kb}K plan (≥12K) — requires Sonnet"
+    fi
   fi
 
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -671,6 +698,10 @@ run_stage23() {
   if [ $STAGE23_EXIT -ne 0 ]; then
     echo -e "${RED}❌ Stage 2+3 agent failed (exit $STAGE23_EXIT)${NC}"
     echo "Log: $LOG_FILE_23"
+    if [ "${_ESCALATING:-false}" = "true" ]; then
+      # Escalation mode: return so run_escalation() can decide the next step
+      return $STAGE23_EXIT
+    fi
     exit $STAGE23_EXIT
   fi
 
@@ -699,6 +730,67 @@ run_stage23() {
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
+run_escalation() {
+  # Two-step escape hatch for components where the normal 3-iteration self-healing
+  # cycle has failed. Not triggered automatically — must be requested with --escalate.
+  #
+  # Step 1: Fresh Sonnet run (clean slate — separate log, full Stage 2+3 prompt).
+  #         Sonnet often succeeds on a second attempt because the failure was
+  #         non-deterministic (context overflow, rate limit, tool timeout).
+  #
+  # Step 2: Opus run — only if Step 1 also fails. Opus has deeper reasoning and
+  #         a larger context window; suitable for genuinely complex layouts or
+  #         multi-conflict plans where Sonnet's first/second pass both fell short.
+  #         Opus is ~15× more expensive than Haiku — treat as break-glass only.
+
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${MAGENTA}⚡ Escalation mode — two-step escape hatch${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  # ── Step 1: Fresh Sonnet run ──────────────────────────────────────────────
+  echo -e "${CYAN}Step 1/2: Fresh Sonnet run (${SONNET_MODEL})${NC}"
+  echo ""
+
+  # Force Sonnet, signal run_stage23() we are escalating so it returns instead of exiting
+  _ESCALATING=true
+  STAGE23_MODEL_OVERRIDE="$SONNET_MODEL"
+  run_stage23
+  local _step1_exit=$?
+
+  if [ $_step1_exit -eq 0 ]; then
+    echo -e "${GREEN}✅ Escalation Step 1 succeeded (Sonnet)${NC}"
+    return 0
+  fi
+
+  echo ""
+  echo -e "${YELLOW}⚠️  Step 1 (Sonnet) failed — proceeding to Step 2 (Opus)${NC}"
+  echo ""
+
+  # ── Step 2: Opus run ──────────────────────────────────────────────────────
+  echo -e "${MAGENTA}Step 2/2: Opus run (${OPUS_MODEL}) — break-glass${NC}"
+  echo -e "${YELLOW}Note: Opus is ~15× more expensive than Haiku. Use sparingly.${NC}"
+  echo ""
+
+  STAGE23_MODEL_OVERRIDE="$OPUS_MODEL"
+  run_stage23
+  local _step2_exit=$?
+  _ESCALATING=false
+
+  if [ $_step2_exit -ne 0 ]; then
+    echo ""
+    echo -e "${RED}❌ Escalation failed: both Sonnet (Step 1) and Opus (Step 2) could not complete Stage 2+3.${NC}"
+    echo ""
+    echo "Recommended next steps:"
+    echo "  1. Review both logs above for the specific failure"
+    echo "  2. Check if the plan itself has unresolvable conflicts (re-run Stage 1)"
+    echo "  3. Simplify the Figma design or break it into smaller components"
+    exit $_step2_exit
+  fi
+
+  echo -e "${GREEN}✅ Escalation Step 2 succeeded (Opus)${NC}"
+}
+
 # ═════════════════════════════════════════════════════════════════════════════
 # MAIN FLOW
 # ═════════════════════════════════════════════════════════════════════════════
@@ -721,6 +813,9 @@ if [ "$STAGE" = "1" ]; then
     # If we reach here the human approved (or AUTO_APPROVE=true)
     run_stage23
   fi
+elif [ "$ESCALATE" = "true" ]; then
+  # --escalate: two-step escape hatch — requires an existing plan
+  run_escalation
 else
   # --stage2 or --plan= flag: jump straight to Stage 2+3 with existing plan
   run_stage23

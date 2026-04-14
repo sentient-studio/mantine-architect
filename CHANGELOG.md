@@ -5,6 +5,52 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.50.0] — 2026-04-14
+
+### Added — Two-step Stage 2+3 escalation as a manual escape hatch (`--escalate`)
+
+New flag `--escalate` on `dispatch-agent.sh` provides a two-step break-glass mechanism
+for components where the normal 3-iteration self-healing cycle has failed. It is a
+**manual escape hatch only** — never triggered automatically.
+
+**`--escalate` flow:**
+
+1. **Step 1 — Fresh Sonnet run** (`claude-sonnet-4-6`): a clean-slate Stage 2+3
+   invocation. Non-deterministic failures (context overflow, rate limit, tool timeout)
+   often resolve on a second attempt with the same model.
+2. **Step 2 — Opus run** (`claude-opus-4-5`): only fires if Step 1 also fails.
+   Opus has deeper reasoning and a larger context window, useful for genuinely complex
+   multi-conflict plans where Sonnet's first two passes both fell short.
+   ~15× more expensive than Haiku — treat as true break-glass.
+
+If both steps fail, the script prints a diagnostic block with recommended actions
+(review logs, re-plan Stage 1, simplify the Figma design).
+
+**`--model=MODEL` override:** also added for one-off model selection without escalation.
+
+**Implementation details:**
+- `OPUS_MODEL="claude-opus-4-5"` constant added alongside existing `SONNET_MODEL`/`HAIKU_MODEL`
+- New `ESCALATE` and `STAGE23_MODEL_OVERRIDE` globals parsed from args
+- `run_stage23()` checks `STAGE23_MODEL_OVERRIDE` before `select_stage23_model()`
+- `run_stage23()` failure path: `return $STAGE23_EXIT` when `_ESCALATING=true` (so
+  `run_escalation()` can decide Step 2), otherwise `exit` as before
+- New `run_escalation()` function orchestrates Step 1 → Step 2
+- Main flow branches: `ESCALATE=true` → `run_escalation()`, `STAGE=23` → `run_stage23()`, `STAGE=1` → existing path
+
+**Usage:**
+```bash
+# Normal dispatch first — if self-healing cycle fails, then escalate:
+./scripts/dispatch-agent.sh Modal 'https://figma.com/design/...' --escalate
+
+# With a specific plan file:
+./scripts/dispatch-agent.sh Modal 'https://figma.com/design/...' --escalate --plan=logs/plan-Modal-20260414-120000.md
+
+# Force a specific model for one run (no escalation):
+./scripts/dispatch-agent.sh Modal 'https://figma.com/design/...' --model=claude-opus-4-5
+```
+
+---
+
 ## [0.49.0] — 2026-04-14
 
 ### Fixed — ButtonMenu dropdown items now scale with the `size` prop

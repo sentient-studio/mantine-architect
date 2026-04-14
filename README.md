@@ -237,6 +237,8 @@ and cost:
 | Stage 1 (Plan) | `claude-sonnet-4-6` | Spatial inference, constitutional conflict detection, Figma MCP reasoning |
 | Stage 2+3 — simple | `claude-haiku-4-5-20251001` | 0🔴 0🟡 conflicts + plan < 12 KB — code gen from a complete spec is retrieval, not reasoning |
 | Stage 2+3 — complex | `claude-sonnet-4-6` | Any BLOCK/ADAPT conflict or plan ≥ 12 KB — complexity warrants full reasoning |
+| Stage 2+3 — escalation Step 1 | `claude-sonnet-4-6` | `--escalate` flag: fresh Sonnet run after the 3-iteration self-healing cycle fails |
+| Stage 2+3 — escalation Step 2 | `claude-opus-4-5` | Break-glass only — fires if escalation Step 1 also fails; ~15× Haiku cost |
 | PUSHBACK validation | python3 (no LLM) | Schema check, field validation, severity/category enum guard |
 | PUSHBACK prose | `claude-haiku-4-5-20251001` | Rewrites dry `detail` fields into assertive architect persona before posting to Figma |
 
@@ -248,6 +250,16 @@ Model: claude-sonnet-4-6          (2🟡 conflicts — requires Sonnet)
 ```
 
 Set `SKIP_PUSHBACK_PROSE_REWRITE=1` to bypass the Haiku prose pass (CI / tests).
+
+### Escalation (`--escalate`)
+
+When the normal 3-iteration self-healing cycle fails, escalation is a **manual** two-step escape hatch:
+
+```bash
+./scripts/dispatch-agent.sh Modal 'https://figma.com/design/...' --escalate
+```
+
+Step 1 retries with a fresh Sonnet context. If Step 1 also fails, Step 2 uses Opus. Escalation is never triggered automatically — Opus is break-glass only.
 
 ---
 

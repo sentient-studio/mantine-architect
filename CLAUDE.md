@@ -137,6 +137,29 @@ An MCP server that wraps `dispatch-agent.sh` so the entire Plan → Generate pip
 | 4 | `SKIP_LLMS_REFRESH=1` set when `mantine-llms.txt` is < 6 h old | Eliminates curl round-trip |
 | 5 | Stage 2+3 routed to Haiku for 0-conflict plans < 12 KB (`select_stage23_model()`) | ~60–70% token cost reduction on simple components |
 
+### Escalation (manual escape hatch)
+
+When the normal 3-iteration self-healing cycle fails, use `--escalate`:
+
+```bash
+./scripts/dispatch-agent.sh Modal 'https://figma.com/design/...' --escalate
+```
+
+Two steps, only advancing if the previous fails:
+
+1. **Step 1 — Fresh Sonnet run** (`claude-sonnet-4-6`): a clean-slate Stage 2+3 invocation. Most non-deterministic failures resolve here.
+2. **Step 2 — Opus run** (`claude-opus-4-5`): break-glass only. ~15× more expensive than Haiku.
+
+If both steps fail the script prints a diagnostic block (review logs / re-plan / simplify design).
+
+One-off model override without escalation:
+
+```bash
+./scripts/dispatch-agent.sh Modal 'https://figma.com/design/...' --model=claude-opus-4-5
+```
+
+**When to escalate vs re-plan:** Escalate when Stage 2+3 itself crashes (exit ≠ 0, tool timeout, context overflow) but the plan is sound. Re-run Stage 1 when the plan has unresolvable conflicts or the Figma design has changed.
+
 ### Setup
 
 ```bash
