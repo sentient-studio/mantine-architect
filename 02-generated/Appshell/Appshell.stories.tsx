@@ -131,7 +131,12 @@ export const Showcase: Story = {
     padding: 'md',
   },
   render: (args) => (
+    // key forces a full remount when layout-critical props change.
+    // Mantine's AppShell injects --app-shell-padding (and zone dimensions) into
+    // a :root <style> tag once on mount and does not patch it on re-render.
+    // Without the key, changing padding/heights/widths in Controls has no effect.
     <Appshell
+      key={`${args.padding}-${args.headerHeight}-${args.footerHeight}-${args.navbarWidth}-${args.asideWidth}`}
       {...args}
       header={<Text fw={600} size="md">My Application</Text>}
       navbar={<NavSlot />}

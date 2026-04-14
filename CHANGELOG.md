@@ -5,6 +5,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.52.0] — 2026-04-14
+
+### Fixed — Appshell `padding` control in Storybook has no effect
+
+Mantine's `AppShell` injects layout CSS variables (`--app-shell-padding`,
+`--app-shell-navbar-width`, etc.) into a `:root` `<style>` tag **once on
+initial mount**. Subsequent React re-renders do not re-inject the rule, so
+changing `padding` (or any zone dimension) via Storybook Controls appeared to
+have no effect — the layout stayed at the initial values with no error or warning.
+
+**Fix:** Added a compound `key` to the Showcase story's `render` function
+covering all five layout-critical props. When any prop changes, React fully
+unmounts and remounts the component, re-triggering Mantine's CSS injection with
+the new values.
+
+**Also fixed:** Restored `active` state on the Dashboard NavLink (was removed
+in Stage 3 to avoid a contrast violation) using `style={{ '--nl-color':
+'var(--mantine-color-blue-9)' }}` directly — `color="blue.9"` prop sets the
+background from blue.9 but resolves `--nl-color` to `blue.6` (3.08:1 ❌);
+the CSS variable override gives `#1864ab` on `#e8f0f7` ≈ 4.83:1 (✅).
+
+### Changed — CLAUDE.md: two new Silent Failure Patterns
+
+1. **Mantine layout component CSS injection is mount-only** — `AppShell`
+   (and similar) doesn't re-inject `:root` CSS variables on re-render.
+   Fix: `key` on the story render covering layout-critical props.
+
+2. **Mantine shade-qualified `color` prop doesn't set foreground token** —
+   `color="blue.9"` on NavLink correctly derives the active background from
+   blue.9 but resolves `--nl-color` to `blue.6`. Fix: override `--nl-color`
+   directly via `style`.
+
+---
+
 ## [0.51.0] — 2026-04-14
 
 ### Added — Appshell component
