@@ -17,7 +17,15 @@ import { Appshell } from './Appshell';
 function NavSlot() {
   return (
     <Stack p="md" gap={4}>
-      <NavLink label="Dashboard" />
+      {/* style override required: color="blue.9" sets the background correctly but
+          Mantine resolves --nl-color to blue.6 regardless of the shade qualifier.
+          Setting --nl-color directly gives #1864ab on #e8f0f7 ≈ 4.83:1 (WCAG AA ✅).
+          Default (blue.8 via primaryShade:8) only reaches 4.39:1 on this background. */}
+      <NavLink
+        label="Dashboard"
+        active
+        style={{ '--nl-color': 'var(--mantine-color-blue-9)' } as React.CSSProperties}
+      />
       <NavLink label="Projects" />
       <NavLink label="Team" />
       <NavLink label="Settings" />
