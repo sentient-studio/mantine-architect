@@ -4,9 +4,18 @@ import {
   Burger,
   Group,
   type MantineSize,
+  type MantineSpacing,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import classes from './Appshell.module.css';
+
+/**
+ * Responsive padding type — mirrors Mantine's AppShell `padding` prop.
+ * Pass a single MantineSize for all breakpoints, or an object for per-breakpoint
+ * control: `{ base: 'xs', sm: 'md', lg: 'xl' }`.
+ * Mantine generates `@media (min-width: ...)` :root rules for each breakpoint.
+ */
+export type AppshellPadding = MantineSpacing | Partial<Record<MantineSize, MantineSpacing>>;
 
 export interface AppshellProps {
   /** Content rendered inside the header bar — caller supplies layout (Group, etc.) */
@@ -31,8 +40,10 @@ export interface AppshellProps {
   navbarWidth?: number;
   /** Aside width in px — default 300 */
   asideWidth?: number;
-  /** Main content padding token — default 'md' */
-  padding?: MantineSize;
+  /** Main content padding. Single token ('md') applies to all breakpoints.
+   *  Pass a responsive object for per-breakpoint control:
+   *  `{ base: 'xs', sm: 'md', lg: 'xl' }` — Mantine generates @media rules. */
+  padding?: AppshellPadding;
 }
 
 /**
@@ -46,6 +57,9 @@ export interface AppshellProps {
  * withAside={false} omits the Aside zone; withNavbar={false} omits Navbar and
  * the mobile Burger toggle. Mantine's gray.3 zone dividers are applied natively
  * by each compound zone — no manual border CSS required.
+ *
+ * padding accepts a single MantineSize or a responsive object
+ * ({ base: 'xs', sm: 'md', lg: 'xl' }) — Mantine generates @media :root rules.
  *
  * WCAG AA: Shell renders no text directly — consumer is responsible for content
  * contrast. HTML5 landmarks (header, nav, main, aside, footer) are provided by

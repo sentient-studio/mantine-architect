@@ -99,10 +99,13 @@ const meta: Meta<typeof Appshell> = {
     padding: {
       control: 'select',
       options: ['xs', 'sm', 'md', 'lg', 'xl'],
-      description: 'Main content area padding token',
+      description:
+        'Main content padding. Single token applies to all breakpoints. ' +
+        'Pass a responsive object for per-breakpoint control: ' +
+        '`{ base: "xs", sm: "md", lg: "xl" }` — Mantine generates @media :root rules.',
       table: {
         defaultValue: { summary: 'md' },
-        type: { summary: 'MantineSize' },
+        type: { summary: "MantineSize | { base?: MantineSize; sm?: MantineSize; lg?: MantineSize; … }" },
       },
     },
     // ReactNode slot props — not controllable via Storybook Controls
