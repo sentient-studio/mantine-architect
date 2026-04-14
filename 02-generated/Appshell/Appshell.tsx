@@ -17,6 +17,24 @@ import classes from './Appshell.module.css';
  */
 export type AppshellPadding = MantineSpacing | Partial<Record<MantineSize, MantineSpacing>>;
 
+/**
+ * Zone size — mirrors Mantine's internal AppShellSize.
+ * Accepts a px number (e.g. 300) or any CSS length string (e.g. '25%', '20rem').
+ */
+export type AppshellZoneSize = number | (string & {});
+
+/**
+ * Responsive zone size — mirrors Mantine's internal AppShellResponsiveSize.
+ * AppShellResponsiveSize is not re-exported from @mantine/core's public barrel;
+ * this local mirror avoids deep internal imports.
+ * Mantine generates `@media (min-width: ...)` :root rules for each key present.
+ *
+ * @example `{ base: 200, lg: 300 }` → 200px default, 300px at ≥75em (lg)
+ */
+export type AppshellResponsiveSize = Partial<
+  Record<'base' | 'xs' | 'sm' | 'md' | 'lg' | 'xl', AppshellZoneSize>
+>;
+
 export interface AppshellProps {
   /** Content rendered inside the header bar — caller supplies layout (Group, etc.) */
   header?: React.ReactNode;
@@ -32,14 +50,14 @@ export interface AppshellProps {
   withAside?: boolean;
   /** Show navbar — default true; hides AppShell.Navbar when false */
   withNavbar?: boolean;
-  /** Header height in px — default 60 */
-  headerHeight?: number;
-  /** Footer height in px — default 60 */
-  footerHeight?: number;
-  /** Navbar width in px — default 300 */
-  navbarWidth?: number;
-  /** Aside width in px — default 300 */
-  asideWidth?: number;
+  /** Header height in px or responsive: `{ base: 50, lg: 60 }` — default 60 */
+  headerHeight?: AppshellZoneSize | AppshellResponsiveSize;
+  /** Footer height in px or responsive: `{ base: 50, lg: 60 }` — default 60 */
+  footerHeight?: AppshellZoneSize | AppshellResponsiveSize;
+  /** Navbar width in px or responsive: `{ base: 200, lg: 300 }` — default 300 */
+  navbarWidth?: AppshellZoneSize | AppshellResponsiveSize;
+  /** Aside width in px or responsive: `{ base: 200, lg: 300 }` — default 300 */
+  asideWidth?: AppshellZoneSize | AppshellResponsiveSize;
   /** Main content padding. Single token ('md') applies to all breakpoints.
    *  Pass a responsive object for per-breakpoint control:
    *  `{ base: 'xs', sm: 'md', lg: 'xl' }` — Mantine generates @media rules. */

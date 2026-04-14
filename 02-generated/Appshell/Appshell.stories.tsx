@@ -78,23 +78,43 @@ const meta: Meta<typeof Appshell> = {
     },
     headerHeight: {
       control: 'number',
-      description: 'Header height in px',
-      table: { defaultValue: { summary: '60' } },
+      description:
+        'Header height in px or a responsive object: `{ base: 50, lg: 60 }` — ' +
+        'Mantine generates `@media (min-width: ...)` `:root` rules for each breakpoint.',
+      table: {
+        defaultValue: { summary: '60' },
+        type: { summary: 'number | string | { base?: number | string; sm?: …; lg?: …; … }' },
+      },
     },
     footerHeight: {
       control: 'number',
-      description: 'Footer height in px',
-      table: { defaultValue: { summary: '60' } },
+      description:
+        'Footer height in px or a responsive object: `{ base: 50, lg: 60 }` — ' +
+        'Mantine generates `@media (min-width: ...)` `:root` rules for each breakpoint.',
+      table: {
+        defaultValue: { summary: '60' },
+        type: { summary: 'number | string | { base?: number | string; sm?: …; lg?: …; … }' },
+      },
     },
     navbarWidth: {
       control: 'number',
-      description: 'Navbar width in px',
-      table: { defaultValue: { summary: '300' } },
+      description:
+        'Navbar width in px or a responsive object: `{ base: 200, lg: 300 }` — ' +
+        'Mantine generates `@media (min-width: ...)` `:root` rules for each breakpoint.',
+      table: {
+        defaultValue: { summary: '300' },
+        type: { summary: 'number | string | { base?: number | string; sm?: …; lg?: …; … }' },
+      },
     },
     asideWidth: {
       control: 'number',
-      description: 'Aside panel width in px',
-      table: { defaultValue: { summary: '300' } },
+      description:
+        'Aside panel width in px or a responsive object: `{ base: 200, lg: 300 }` — ' +
+        'Mantine generates `@media (min-width: ...)` `:root` rules for each breakpoint.',
+      table: {
+        defaultValue: { summary: '300' },
+        type: { summary: 'number | string | { base?: number | string; sm?: …; lg?: …; … }' },
+      },
     },
     padding: {
       control: 'select',
@@ -139,7 +159,7 @@ export const Showcase: Story = {
     // a :root <style> tag once on mount and does not patch it on re-render.
     // Without the key, changing padding/heights/widths in Controls has no effect.
     <Appshell
-      key={`${args.padding}-${args.headerHeight}-${args.footerHeight}-${args.navbarWidth}-${args.asideWidth}`}
+      key={JSON.stringify([args.padding, args.headerHeight, args.footerHeight, args.navbarWidth, args.asideWidth])}
       {...args}
       header={<Text fw={600} size="md">My Application</Text>}
       navbar={<NavSlot />}
@@ -192,6 +212,27 @@ export const Minimal: Story = {
       withNavbar={false}
       withAside={false}
       header={<Text fw={600} size="md">My Application</Text>}
+      footer={<Text size="sm" c="gray.7">Status: Ready</Text>}
+    >
+      <MainContent />
+    </Appshell>
+  ),
+};
+
+/* ─── ResponsiveZones (Playwright fixture — hidden from docs) ────────────── */
+/* Navbar collapses from 300px → 200px and header from 60px → 50px at <lg.   */
+
+export const ResponsiveZones: Story = {
+  parameters: {
+    // Hidden from autodocs — used only as a Playwright fixture for testing.
+    docs: { disable: true },
+  },
+  render: () => (
+    <Appshell
+      navbarWidth={{ base: 200, lg: 300 }}
+      headerHeight={{ base: 50, lg: 60 }}
+      header={<Text fw={600} size="md">My Application</Text>}
+      navbar={<NavSlot />}
       footer={<Text size="sm" c="gray.7">Status: Ready</Text>}
     >
       <MainContent />

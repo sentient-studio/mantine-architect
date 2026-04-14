@@ -105,6 +105,38 @@ test.describe('Appshell', () => {
     expect(results.violations).toEqual([]);
   });
 
+  /* ─── Responsive zone sizes ─────────────────────────────────────────────── */
+
+  test('responsive navbar: 200px at 600px viewport width', async ({ page }) => {
+    await page.setViewportSize({ width: 600, height: 800 });
+    await page.goto(story('responsive-zones'));
+    await page.locator('.mantine-AppShell-navbar').waitFor();
+    const width = await page.evaluate(() =>
+      document.querySelector('.mantine-AppShell-navbar')?.getBoundingClientRect().width
+    );
+    expect(width).toBe(200);
+  });
+
+  test('responsive navbar: 300px at 1280px viewport width', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(story('responsive-zones'));
+    await page.locator('.mantine-AppShell-navbar').waitFor();
+    const width = await page.evaluate(() =>
+      document.querySelector('.mantine-AppShell-navbar')?.getBoundingClientRect().width
+    );
+    expect(width).toBe(300);
+  });
+
+  test('responsive header: 50px at 600px viewport width', async ({ page }) => {
+    await page.setViewportSize({ width: 600, height: 800 });
+    await page.goto(story('responsive-zones'));
+    await page.locator('.mantine-AppShell-header').waitFor();
+    const height = await page.evaluate(() =>
+      document.querySelector('.mantine-AppShell-header')?.getBoundingClientRect().height
+    );
+    expect(height).toBe(50);
+  });
+
   /* ─── Visual snapshot ────────────────────────────────────────────────────── */
 
   test('default story screenshot', async ({ page }) => {

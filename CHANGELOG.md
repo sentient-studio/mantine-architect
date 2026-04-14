@@ -5,6 +5,41 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.53.0] — 2026-04-14
+
+### Changed — Appshell zone dimensions now accept responsive objects
+
+`headerHeight`, `footerHeight`, `navbarWidth`, and `asideWidth` previously only
+accepted a single `number` or CSS length `string`. They now also accept a
+responsive breakpoint object — e.g. `navbarWidth={{ base: 200, lg: 300 }}` —
+mirroring Mantine's internal `AppShellResponsiveSize`. Mantine generates
+`@media (min-width: ...)` `:root` variable rules for each key present, so zone
+dimensions adapt at the same breakpoints as padding.
+
+**New types exported** from `Appshell.tsx`:
+- `AppshellZoneSize` — `number | (string & {})` (was already used internally)
+- `AppshellResponsiveSize` — `Partial<Record<'base'|'xs'|'sm'|'md'|'lg'|'xl', AppshellZoneSize>>`
+  (local mirror of Mantine's internal `AppShellResponsiveSize`, not re-exported
+  from `@mantine/core`'s public barrel)
+
+**Showcase `key` fix:** The story `key` was previously a template-literal
+joining all props with `-`. Object values serialised to `[object Object]`,
+preventing remounts when responsive objects changed. Replaced with
+`JSON.stringify(...)` for safe stringification of any value type.
+
+**New stories:**
+- `ResponsiveZones` — hidden Playwright fixture; renders `navbarWidth={{ base: 200, lg: 300 }}`
+  and `headerHeight={{ base: 50, lg: 60 }}` for responsive layout verification.
+
+**Storybook argTypes:** `headerHeight`, `footerHeight`, `navbarWidth`, and
+`asideWidth` now document responsive object syntax in `description` and
+`table.type.summary`.
+
+**New Playwright tests (+3):** responsive navbar width at 600px and 1280px
+viewports; responsive header height at 600px viewport.
+
+---
+
 ## [0.52.0] — 2026-04-14
 
 ### Fixed — Appshell `padding` control in Storybook has no effect
