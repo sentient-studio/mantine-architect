@@ -163,7 +163,7 @@ function RegistrationForm({ onClose }: { onClose: () => void }) {
         <Group justify="space-between">
           <Text size="sm" c="gray.7">
             Have an account?{' '}
-            <Anchor href="#" size="sm">
+            <Anchor href="#" size="sm" underline="always">
               Login
             </Anchor>
           </Text>

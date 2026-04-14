@@ -149,7 +149,7 @@ function RegistrationForm({ onClose }: { onClose: () => void }) {
         {/* gray.7 = 7.45:1 on white — WCAG AA pass (Figma gray.6 = 3.15:1 ❌ promoted) */}
         <Text ta="center" size="sm" c="gray.7">
           Have an account?{' '}
-          <Anchor href="#" size="sm">
+          <Anchor href="#" size="sm" underline="always">
             Login
           </Anchor>
         </Text>

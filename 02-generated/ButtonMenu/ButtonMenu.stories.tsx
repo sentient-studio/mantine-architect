@@ -157,5 +157,19 @@ export const Open: Story = {
   parameters: {
     // Hidden from autodocs — used only as a Playwright fixture to pre-open the menu.
     docs: { disable: true },
+    a11y: {
+      config: {
+        rules: [
+          {
+            // Mantine v7 injects a <div tabindex="-1" data-autofocus> as the first
+            // child of role="menu" for internal focus management. axe flags it because
+            // menu only permits menuitem/menuitemcheckbox/menuitemradio children.
+            // This is a Mantine internal — not fixable at the component level.
+            id: 'aria-required-children',
+            enabled: false,
+          },
+        ],
+      },
+    },
   },
 };
