@@ -31,7 +31,7 @@ const preview: Preview = {
           */}
           <div
             data-mantine-color-scheme={colorScheme}
-            style={{ minHeight: '100vh', background: 'var(--mantine-color-body)' }}
+            style={{ minHeight: '100%', background: 'var(--mantine-color-body)' }}
           >
             <Story />
           </div>
