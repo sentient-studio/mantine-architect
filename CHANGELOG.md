@@ -5,6 +5,39 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.51.0] — 2026-04-14
+
+### Added — Appshell component
+
+New `Appshell` component wrapping Mantine's AppShell compound API into a 5-zone
+responsive layout shell (Header, Navbar, Main, Aside, Footer).
+
+**Props:** `header`, `navbar`, `aside`, `footer`, `children` (ReactNode slots);
+`withNavbar`, `withAside` (boolean toggles); `headerHeight`, `footerHeight`,
+`navbarWidth`, `asideWidth` (px dimensions); `padding` (MantineSize).
+
+Mobile Navbar collapse managed internally via `useDisclosure` + `Burger` (hidden
+on `sm+`). Zone borders use Mantine's `withBorder` defaults — no manual CSS.
+
+**Stories:** Showcase, WithoutAside, WithoutNavbar, Minimal, Open (Playwright fixture).  
+**Tests:** 11/11 passing — zone presence, dimensions, background colour, a11y, visual snapshot.
+
+### Fixed — Appshell JSDoc description mentioned `withBorder` as if it were a component prop
+
+The JSDoc comment referred to Mantine's internal `withBorder` prop by name. Storybook
+renders the JSDoc verbatim as the autodocs description, making it look like a controllable
+prop on the wrapper component. Reworded to describe the behaviour ("zone dividers applied
+natively") without naming the internal Mantine prop.
+
+### Changed — CLAUDE.md JSDoc rules: never name Mantine-internal props in JSDoc
+
+Added rule to Component Patterns → JSDoc: avoid naming Mantine-internal props
+(e.g. `withBorder`, `keepMounted`, `withOverlay`) in JSDoc descriptions. Storybook
+renders the description verbatim, so named props look like component API surface.
+Describe behaviour instead.
+
+---
+
 ## [0.50.0] — 2026-04-14
 
 ### Added — Two-step Stage 2+3 escalation as a manual escape hatch (`--escalate`)

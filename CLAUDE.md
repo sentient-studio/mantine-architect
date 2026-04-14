@@ -346,6 +346,7 @@ Rules:
 - **One JSDoc block per component file** — on the primary exported function only
 - Do NOT add JSDoc to helper functions, sub-components, or type aliases
 - Keep it 4–8 lines: what it wraps, any data-* forwarding, WCAG decisions
+- **Never name a Mantine-internal prop in the JSDoc** — Storybook renders the description verbatim, so mentioning e.g. `withBorder`, `keepMounted`, `withOverlay` makes it look like a controllable prop on your component. Describe the *behaviour* instead: "zone dividers are applied natively" not "withBorder defaults apply".
 
 ### Base component (`UnstyledButton`)
 ```tsx
@@ -573,6 +574,7 @@ Run via `./scripts/quality-gate.sh <ComponentName> [--skip-deps]`
 | Modal | [node-id=106-985](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=106-985) | ✅ 16/16 tests passing |
 | ContentBox | [node-id=107-1419](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=107-1419) | ✅ 12/12 tests passing |
 | ButtonMenu | [node-id=116-1726](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=116-1726) | ✅ 9/9 quality gates |
+| Appshell | [node-id=133-1095](https://www.figma.com/design/8TQSF8TeXMMc9391nYVJ41/Test?node-id=133-1095) | ✅ 11/11 tests passing |
 
 ---
 

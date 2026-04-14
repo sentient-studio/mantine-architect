@@ -1,0 +1,6 @@
+/* Only override needed: Mantine AppShell.Main defaults to the page background color.
+ * Figma specifies gray.0 for the main content area.
+ * light-dark() ensures a sensible dark-mode equivalent (dark.8).              */
+.main {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+}
