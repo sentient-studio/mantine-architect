@@ -68,6 +68,7 @@ export function ButtonMenu({
       position="bottom-start"
       withBorder
       defaultOpened={defaultOpened}
+      styles={{ item: { fontSize: `var(--mantine-font-size-${size})` } }}
     >
       <Menu.Target>
         <UnstyledButton

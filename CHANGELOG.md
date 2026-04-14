@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.49.0] — 2026-04-14
+
+### Fixed — ButtonMenu dropdown items now scale with the `size` prop
+
+Menu item font size was fixed at Mantine's default (`md`) regardless of the `size`
+prop, causing a visible proportion mismatch — e.g. a 30px `xs` trigger opening
+full-size dropdown text.
+
+**Fix:** pass `styles={{ item: { fontSize: \`var(--mantine-font-size-${size})\` } }}`
+to `<Menu>`. Mantine's `styles` prop forwards the value directly to each
+`Menu.Item` via the Styles API, so no extra wrapper or CSS variable is needed.
+
+Visual snapshot for the Open story re-baselined. All 13 Playwright tests pass.
+
+---
+
 ## [0.48.0] — 2026-04-13
 
 ### Added — Agent sharding: model routing + PUSHBACK validation + prose rewrite
