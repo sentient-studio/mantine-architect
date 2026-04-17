@@ -1,7 +1,11 @@
 import React from 'react';
-import { Menu, UnstyledButton, Loader, type MantineSize } from '@mantine/core';
+import { Menu, UnstyledButton, Loader, type MantineSize, type MantineRadius } from '@mantine/core';
 import { IconChevronDown } from '@tabler/icons-react';
 import classes from './ButtonMenu.module.css';
+
+const MANTINE_SIZES = new Set(['xs', 'sm', 'md', 'lg', 'xl']);
+const toRadiusVar = (r: MantineRadius): string =>
+  typeof r === 'number' ? `${r}px` : MANTINE_SIZES.has(r) ? `var(--mantine-radius-${r})` : (r as string);
 
 export interface ButtonMenuItem {
   /** Unique key and callback identifier */
@@ -29,6 +33,8 @@ export interface ButtonMenuProps {
   loading?: boolean;
   /** Button size — controls height, font-size, and padding */
   size?: MantineSize;
+  /** Corner radius — accepts Mantine size tokens ('xs'–'xl'), a pixel number, or any CSS length */
+  radius?: MantineRadius;
   /** Internal: pre-open the menu (for Playwright fixture stories) */
   defaultOpened?: boolean;
 }
@@ -57,6 +63,7 @@ export function ButtonMenu({
   disabled = false,
   loading = false,
   size = 'md',
+  radius,
   defaultOpened,
 }: ButtonMenuProps) {
   return (
@@ -74,9 +81,11 @@ export function ButtonMenu({
         <UnstyledButton
           className={classes.root}
           data-size={size}
+          data-radius={radius}
           data-disabled={disabled || undefined}
           data-loading={loading || undefined}
           disabled={disabled || loading}
+          style={radius !== undefined ? { '--btn-radius': toRadiusVar(radius) } as React.CSSProperties : undefined}
         >
           <span className={classes.inner}>
             <span className={classes.label}>{label}</span>

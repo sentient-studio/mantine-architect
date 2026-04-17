@@ -88,6 +88,21 @@ test.describe('ButtonMenu', () => {
     await expect(trigger).toHaveAttribute('data-size', 'md');
   });
 
+  test('data-radius is absent when radius prop is not set', async ({ page }) => {
+    await page.goto(story('default'));
+    const trigger = page.locator('button:visible');
+    await trigger.waitFor();
+    await expect(trigger).not.toHaveAttribute('data-radius');
+  });
+
+  test('data-radius reflects the radius prop', async ({ page }) => {
+    await page.goto(story('radii'));
+    // Radii story renders 6 ButtonMenu instances — each label is unique
+    const xlButton = page.locator('button:visible', { hasText: 'Radius xl' });
+    await xlButton.waitFor();
+    await expect(xlButton).toHaveAttribute('data-radius', 'xl');
+  });
+
   test('data-disabled is present when disabled', async ({ page }) => {
     await page.goto(story('disabled'));
     const trigger = page.locator('button:visible');

@@ -41,7 +41,7 @@
   align-items: center;
   height: var(--btn-height);
   padding-inline: var(--btn-px);
-  border-radius: var(--mantine-radius-sm);
+  border-radius: var(--btn-radius, var(--mantine-radius-sm));
   background-color: var(--mantine-color-blue-8);
   color: var(--mantine-color-white);
   font-size: var(--btn-fz);

@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.54.0] — 2026-04-17
+
+### Added — `radius` prop on Button and ButtonMenu
+
+Both components now accept a `radius?: MantineRadius` prop controlling corner radius independently of `size`. Accepts Mantine size tokens (`'xs'`–`'xl'`), a pixel number, or any CSS length string.
+
+**Implementation pattern:** radius is resolved to a CSS custom property (`--button-radius` / `--btn-radius`) via an inline style, using a `toRadiusVar` helper. The CSS `.root` rule uses `var(--btn-radius, var(--mantine-radius-sm))` so the fallback applies when the prop is omitted (no default value → undefined defers to CSS). A `data-radius` attribute mirrors the prop value for Playwright assertions.
+
+**New stories:** `Radii` story in both `Button.stories.tsx` and `ButtonMenu.stories.tsx` showing xs / sm / md / lg / xl / 0 stacked.
+
+**New Playwright tests (+2):** `data-radius` absent when prop unset; `data-radius` reflects the named size when set.
+
+**CLAUDE.md:** Added "Radius prop" section in Component Patterns with implementation checklist.
+
+---
+
 ## [0.53.0] — 2026-04-14
 
 ### Changed — Appshell zone dimensions now accept responsive objects

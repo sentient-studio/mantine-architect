@@ -33,7 +33,13 @@ const meta: Meta<typeof Button> = {
       options: ['xs', 'sm', 'md', 'lg', 'xl'],
       description: 'Controls height, padding, and font size',
     },
-    onClick: { action: 'clicked' },
+    radius: {
+      control: 'select',
+      options: ['xs', 'sm', 'md', 'lg', 'xl'],
+      description: 'Corner radius — accepts Mantine size tokens, a pixel number, or any CSS length',
+      table: { type: { summary: 'MantineRadius' } },
+    },
+    onClick: { table: { disable: true } },
   },
 };
 
@@ -89,5 +95,18 @@ export const Showcase: Story = {
       <Button variant="outline">Outline</Button>
       <Button disabled>Disabled</Button>
     </Group>
+  ),
+};
+
+export const Radii: Story = {
+  render: () => (
+    <Stack align="flex-start" gap="sm">
+      <Button radius="xs">Radius xs</Button>
+      <Button radius="sm">Radius sm (default)</Button>
+      <Button radius="md">Radius md</Button>
+      <Button radius="lg">Radius lg</Button>
+      <Button radius="xl">Radius xl</Button>
+      <Button radius={0}>Radius 0 (square)</Button>
+    </Stack>
   ),
 };

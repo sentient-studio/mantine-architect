@@ -57,6 +57,15 @@ const meta: Meta<typeof ButtonMenu> = {
         type: { summary: 'MantineSize' },
       },
     },
+    radius: {
+      control: 'select',
+      options: ['xs', 'sm', 'md', 'lg', 'xl'],
+      description: 'Corner radius — accepts Mantine size tokens, a pixel number, or any CSS length',
+      table: {
+        defaultValue: { summary: 'sm' },
+        type: { summary: 'MantineRadius' },
+      },
+    },
     items: {
       control: false,
       description: 'Array of ButtonMenuItem definitions',
@@ -140,6 +149,21 @@ export const Sizes: Story = {
       <ButtonMenu label="Create new (md)" items={defaultItems} size="md" />
       <ButtonMenu label="Create new (lg)" items={defaultItems} size="lg" />
       <ButtonMenu label="Create new (xl)" items={defaultItems} size="xl" />
+    </Stack>
+  ),
+};
+
+/* ─── Radii ────────────────────────────────────────────────────────────────── */
+
+export const Radii: Story = {
+  render: () => (
+    <Stack gap="md" align="flex-start">
+      <ButtonMenu label="Radius xs" items={defaultItems} radius="xs" />
+      <ButtonMenu label="Radius sm (default)" items={defaultItems} radius="sm" />
+      <ButtonMenu label="Radius md" items={defaultItems} radius="md" />
+      <ButtonMenu label="Radius lg" items={defaultItems} radius="lg" />
+      <ButtonMenu label="Radius xl" items={defaultItems} radius="xl" />
+      <ButtonMenu label="Radius 0 (square)" items={defaultItems} radius={0} />
     </Stack>
   ),
 };

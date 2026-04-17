@@ -411,6 +411,41 @@ Add a `size` prop whenever the component:
 | Story meta | `size` argType with `select` control + options `['xs','sm','md','lg','xl']` |
 | Spec | `expect(root).toHaveAttribute('data-size', 'md')` for the default |
 
+### Radius prop
+
+`radius` is **always independent of `size`** — shape and density are orthogonal. Add it to every button-like component; it's optional on input wrappers.
+
+**Implementation pattern:**
+
+```tsx
+const MANTINE_SIZES = new Set(['xs', 'sm', 'md', 'lg', 'xl']);
+const toRadiusVar = (r: MantineRadius): string =>
+  typeof r === 'number' ? `${r}px` : MANTINE_SIZES.has(r) ? `var(--mantine-radius-${r})` : (r as string);
+
+// In the component:
+radius?: MantineRadius;
+// Passed as inline style only when set (undefined → CSS fallback):
+style={radius !== undefined ? { '--btn-radius': toRadiusVar(radius) } as React.CSSProperties : undefined}
+data-radius={radius}
+```
+
+```css
+/* CSS uses the variable with a sensible fallback */
+.root { border-radius: var(--btn-radius, var(--mantine-radius-sm)); }
+```
+
+**Checklist:**
+
+| Item | Detail |
+|---|---|
+| Prop | `radius?: MantineRadius` (no default — undefined defers to CSS fallback) |
+| Root attribute | `data-radius={radius}` (absent when undefined, so CSS fallback kicks in) |
+| Inline style | `--btn-radius` / `--button-radius` only set when `radius !== undefined` |
+| CSS variable | `var(--btn-radius, var(--mantine-radius-sm))` on `.root` |
+| Story | `Radii` story showing xs / sm / md / lg / xl / 0 stacked |
+| Story meta | `radius` argType with `select` control + `table.type.summary: 'MantineRadius'` |
+| Spec | `expect(trigger).not.toHaveAttribute('data-radius')` when prop unset; attribute value test for a named size |
+
 ### Hover, dark mode
 ```css
 @mixin hover { background-color: var(--mantine-color-blue-9); }
