@@ -13,6 +13,33 @@ module.exports = {
   port: 9000,
   openBrowser: false,
 
+  // ── Storage ────────────────────────────────────────────────────────────────
+  // Explicit key so all users share a clean state. Bump the version suffix
+  // whenever you want to reset stored Playroom sessions (e.g. after a major
+  // component rename or breaking scope change).
+  storageKey: 'mantine-architect-v1',
+
+  // ── Example code ───────────────────────────────────────────────────────────
+  // Shown in the code panel for new sessions (no stored state).
+  // Demonstrates the available scope: generated components, Mantine primitives,
+  // and Tabler icons — all importable by name without any import statements.
+  exampleCode: `
+<Stack p="md" gap="md">
+  <Text fw={600} size="lg">Hello Playroom</Text>
+  <Text size="sm" c="gray.7">
+    All generated components and Mantine primitives are in scope — no imports needed.
+  </Text>
+  <Group>
+    <ButtonMenu
+      label="Create new"
+      items={defaultItems}
+    />
+    <Badge>Active</Badge>
+  </Group>
+</Stack>
+  `.trim(),
+
+
   // ── Webpack CSS fixes ──────────────────────────────────────────────────────
   // In Playroom v1 webpackConfig is a no-arg factory — it returns additional
   // rules that are merged (by test match) into Playroom's internal config.
