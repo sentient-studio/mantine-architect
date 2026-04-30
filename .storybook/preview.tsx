@@ -49,6 +49,17 @@ const preview: Preview = {
     a11y: {
       test: 'error',
     },
+    docs: {
+      source: {
+        // Mantine components carry displayName '@mantine/core/ComponentName'.
+        // react-element-to-jsx-string uses displayName verbatim, so generated
+        // code snippets contain invalid JSX like <@mantine/core/Text>.
+        // Strip the '@scope/package/' prefix so snippets are valid JSX and can
+        // be copied directly into Playroom.
+        transform: (code: string) =>
+          code.replace(/<(\/?|)@[\w-]+\/[\w-]+\//g, '<$1'),
+      },
+    },
   },
 };
 
