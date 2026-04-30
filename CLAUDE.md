@@ -306,6 +306,8 @@ The Storybook adapter (`storybook-addon-playroom`) was removed because the Vite�
 
 ### Webpack fixes (in `playroom.config.js` only — no Storybook config changes)
 
+**TypeScript + JSX** — Playroom's internal Babel loader uses `include: includePaths` scoped to its own source, so our `.tsx`/`.ts`/`.jsx` files (components, `FrameComponent.jsx`) receive no loader without an explicit rule. Added a `babel-loader` rule with `@babel/preset-env + @babel/preset-react (runtime: automatic) + @babel/preset-typescript`. All three presets ship with Playroom's dependencies and are resolved via `require.resolve`.
+
 **CSS modules** — components import `.module.css` files that need PostCSS for `rem()` transforms. Added a `style-loader + css-loader (modules: true) + postcss-loader` rule for `.module.css`.
 
 **Codemirror double-processing** — Playroom's internal webpack processes its own CSS (codemirror themes, etc.). Without a guard, our plain-CSS rule also ran on those files and errored. Fixed with `issuer: { not: /node_modules\/playroom/ }` on the plain-CSS rule — prevents it from firing for CSS imported by Playroom's own code.
@@ -318,7 +320,7 @@ The Storybook adapter (`storybook-addon-playroom`) was removed because the Vite�
 
 1. **`register_playroom_component()`** — adds `export { ComponentName } from '../02-generated/...'` to `playroom/components.js` before the Mantine layout section. Resolves the exported function name from the TSX file (handles `DataTable` for the `Table` component). Idempotent.
 
-2. **`register_playroom_story_helpers()`** — parses the story file for top-level helpers (functions and consts that are NOT Story/StoryObj/Meta typed), adds `export` keyword if missing, and inserts a named re-export line into `playroom/components.js` before the Tabler icons section. Idempotent.
+2. **`register_playroom_story_helpers()`** — parses the story file for top-level helpers (functions and consts that are NOT Story/StoryObj/Meta typed), adds `export` keyword if missing, adds the helper name to `excludeStories` in the meta object (so Storybook ignores it), and inserts a named re-export line into `playroom/components.js` before the Tabler icons section. Idempotent.
 
 **Test suite:** `./scripts/test-playroom-helpers.sh` — 12 tests covering registration, idempotency, DataTable name resolution, Story-type exclusion, missing-file graceful skip, and section ordering.
 

@@ -25,9 +25,13 @@ After every successful Stage 2+3 run, `register_playroom_component()` and `regis
 **`npm run dev`** starts Storybook (port 6006) and Playroom (port 9000) concurrently via `concurrently`.
 
 **Webpack fixes in `playroom.config.js`:**
+- Babel loader (`babel-loader` + `@babel/preset-env/react/typescript`) for `.tsx/.ts/.jsx` — Playroom's internal Babel loader uses `include: includePaths` scoped to its own source, leaving our components and `FrameComponent.jsx` unprocessed without this rule
 - CSS modules rule (`style-loader + css-loader modules + postcss-loader`) for component `.module.css` files
 - `issuer: { not: /node_modules\/playroom/ }` guard on the plain-CSS rule prevents codemirror theme double-processing
 - `reactElementToJSXStringOptions.displayName` strips `@mantine/core/` prefix from all Mantine component display names
+
+**Story helper exports + `excludeStories`:**
+Any named export from a CSF story file is treated as a story by Storybook. Helper functions/consts used as Playroom fixtures must be listed in `excludeStories` in the meta object. `register_playroom_story_helpers()` now adds them automatically. Existing story files updated: `Appshell`, `ButtonMenu`, `Modal`, `Select`, `Table`.
 
 ---
 
