@@ -308,11 +308,11 @@ The Storybook adapter (`storybook-addon-playroom`) was removed because the Vite�
 
 **TypeScript + JSX** — Playroom's internal Babel loader uses `include: includePaths` scoped to its own source, so our `.tsx`/`.ts`/`.jsx` files (components, `FrameComponent.jsx`) receive no loader without an explicit rule. Added a `babel-loader` rule with `@babel/preset-env + @babel/preset-react (runtime: automatic) + @babel/preset-typescript`. All three presets ship with Playroom's dependencies and are resolved via `require.resolve`.
 
-**CSS modules** — components import `.module.css` files that need PostCSS for `rem()` transforms. Added a `style-loader + css-loader (modules: true) + postcss-loader` rule for `.module.css`.
+**CSS modules** — components import `.module.css` files that need PostCSS for `rem()` transforms. Uses `MiniCssExtractPlugin.loader + css-loader({ modules: { namedExport: false } }) + postcss-loader`. `MiniCssExtractPlugin.loader` is required (not `style-loader`) because Playroom uses `MiniCssExtractPlugin` internally — `style-loader@4` alongside it in the same compilation does not reliably re-export CSS module locals. `namedExport: false` is required because css-loader v7 defaults to named-only exports, but our components use `import classes from './Foo.module.css'` (default import).
 
 **Codemirror double-processing** — Playroom's internal webpack processes its own CSS (codemirror themes, etc.). Without a guard, our plain-CSS rule also ran on those files and errored. Fixed with `issuer: { not: /node_modules\/playroom/ }` on the plain-CSS rule — prevents it from firing for CSS imported by Playroom's own code.
 
-**Mantine `displayName`** — all Mantine components carry `displayName: '@mantine/core/ComponentName'`, which produces invalid JSX in the code panel. Fixed via `reactElementToJSXStringOptions.displayName` in `playroom.config.js` — strips the `@scope/package/` prefix.
+**Mantine `displayName` — NOT fixable via config** — Mantine components carry `displayName: '@mantine/core/ComponentName'`. `reactElementToJSXStringOptions` is NOT a supported option in Playroom v1 (`PlayroomConfig` type doesn't include it; Playroom's source doesn't consume it; functions are silently stripped by `JSON.stringify` in `DefinePlugin`). Do NOT add `reactElementToJSXStringOptions` to `playroom.config.js` — it has no effect. Avoid passing Mantine primitives as prop values in Playroom snippets; use plain strings or our own components instead.
 
 ### Auto-registration after Stage 2+3
 

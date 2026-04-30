@@ -13,19 +13,6 @@ module.exports = {
   port: 9000,
   openBrowser: false,
 
-  // ── Mantine displayName fix ────────────────────────────────────────────────
-  // All Mantine components carry displayName: '@mantine/core/ComponentName',
-  // which produces invalid JSX in the code panel.
-  // Strip the '@scope/package/' prefix to get clean component names.
-  reactElementToJSXStringOptions: {
-    displayName: (element) => {
-      const type = element.type;
-      if (typeof type === 'string') return type;
-      const raw = (type && (type.displayName || type.name)) || 'Unknown';
-      return raw.replace(/^@[\w-]+\/[\w-]+\//, '');
-    },
-  },
-
   // ── Webpack CSS fixes ──────────────────────────────────────────────────────
   // In Playroom v1 webpackConfig is a no-arg factory — it returns additional
   // rules that are merged (by test match) into Playroom's internal config.
