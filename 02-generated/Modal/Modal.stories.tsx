@@ -26,6 +26,7 @@ import { Modal } from './Modal';
  */
 
 const meta: Meta<typeof Modal> = {
+  excludeStories: ['RegistrationForm'],
   title: 'Components/Modal',
   component: Modal,
   tags: ['autodocs'],

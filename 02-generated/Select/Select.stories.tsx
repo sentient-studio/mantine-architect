@@ -11,6 +11,7 @@ export const FRUIT_OPTIONS = [
 ];
 
 const meta: Meta<typeof Select> = {
+  excludeStories: ['FRUIT_OPTIONS'],
   title: 'Components/Select',
   component: Select,
   tags: ['autodocs'],

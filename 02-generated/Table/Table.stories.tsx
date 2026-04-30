@@ -38,6 +38,7 @@ export const PARTIAL_FOOTER_DATA = {
 // ── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof DataTable> = {
+  excludeStories: ['COLUMNS', 'SORTABLE_COLUMNS', 'DATA', 'FOOTER_DATA', 'PARTIAL_FOOTER_DATA'],
   title: 'Components/Table',
   component: DataTable,
   tags: ['autodocs'],

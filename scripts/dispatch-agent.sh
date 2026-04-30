@@ -672,9 +672,35 @@ for i, line in enumerate(lines):
         modified_lines[i] = 'export ' + line
     helpers.append(name)
 
-# Write back story file if we added any export keywords
-if modified_lines != lines:
-    open(stories_path, 'w').write('\n'.join(modified_lines) + '\n')
+# Write back story file if we added any export keywords, and add excludeStories
+# to the meta so Storybook doesn't try to render helpers as stories.
+if modified_lines != lines or helpers:
+    content = '\n'.join(modified_lines)
+
+    # Add excludeStories to the meta object if helpers were found and not already present
+    if helpers and 'excludeStories' not in content:
+        exclude_list = ', '.join(f"'{h}'" for h in helpers)
+        # Insert after the first opening of the meta object (line containing Meta<)
+        meta_re = re.compile(r'(const meta[^=]*=\s*\{)')
+        content = meta_re.sub(
+            r'\1\n  excludeStories: [' + exclude_list + r'],',
+            content, count=1
+        )
+    elif helpers and 'excludeStories' in content:
+        # Merge new helpers into existing excludeStories array
+        existing_re = re.compile(r"excludeStories:\s*\[([^\]]*)\]")
+        m = existing_re.search(content)
+        if m:
+            existing_names = set(re.findall(r"'(\w+)'", m.group(1)))
+            new_names = [h for h in helpers if h not in existing_names]
+            if new_names:
+                merged = list(existing_names) + new_names
+                merged_str = ', '.join(f"'{n}'" for n in merged)
+                content = existing_re.sub(
+                    f"excludeStories: [{merged_str}]", content, count=1
+                )
+
+    open(stories_path, 'w').write(content + '\n')
 
 if not helpers:
     sys.exit(0)

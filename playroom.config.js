@@ -23,40 +23,53 @@ module.exports = {
   },
 
   // ── Webpack CSS fixes ──────────────────────────────────────────────────────
-  webpackConfig: (config) => {
-    // Exclude .module.css from Playroom's built-in CSS rules so our rule below
-    // handles them exclusively (prevents double-processing).
-    config.module.rules = config.module.rules.map((rule) => {
-      if (rule.test && rule.test.toString().includes('css')) {
-        const existing = rule.exclude ? [].concat(rule.exclude) : [];
-        return { ...rule, exclude: [...existing, /\.module\.css$/] };
-      }
-      return rule;
-    });
-
-    // CSS modules — component .module.css files need PostCSS for rem() transforms.
-    config.module.rules.push({
-      test: /\.module\.css$/,
-      use: [
-        require.resolve('style-loader'),
-        { loader: require.resolve('css-loader'), options: { modules: true } },
-        require.resolve('postcss-loader'),
+  // In Playroom v1 webpackConfig is a no-arg factory — it returns additional
+  // rules that are merged (by test match) into Playroom's internal config.
+  // Playroom's own CSS rule carries issuer: /node_modules\/playroom/ so it only
+  // fires for CSS imported by Playroom's internals (codemirror themes etc.).
+  // Our rules below cover the remaining cases without overlap.
+  webpackConfig: () => ({
+    module: {
+      rules: [
+        // TypeScript + JSX — handles our .tsx/.ts/.jsx files (FrameComponent, generated components).
+        // Playroom's internal Babel loader uses `include: includePaths` scoped to playroom's own
+        // source, so our files outside node_modules/playroom are left without a loader otherwise.
+        {
+          test: /\.(tsx?|jsx)$/,
+          exclude: /node_modules/,
+          use: [{
+            loader: require.resolve('babel-loader'),
+            options: {
+              presets: [
+                [require.resolve('@babel/preset-env'), { shippedProposals: true }],
+                [require.resolve('@babel/preset-react'), { runtime: 'automatic' }],
+                require.resolve('@babel/preset-typescript'),
+              ],
+            },
+          }],
+        },
+        // CSS modules — component .module.css files need PostCSS for rem() transforms.
+        {
+          test: /\.module\.css$/,
+          use: [
+            require.resolve('style-loader'),
+            { loader: require.resolve('css-loader'), options: { modules: true } },
+            require.resolve('postcss-loader'),
+          ],
+        },
+        // Plain CSS from our code (FrameComponent → @mantine/core/styles.css).
+        // issuer guard prevents this rule firing for CSS Playroom's own code imports
+        // (codemirror themes etc.) — those are already handled by Playroom's rule.
+        {
+          test: /\.css$/,
+          exclude: /\.module\.css$/,
+          issuer: { not: /node_modules\/playroom/ },
+          use: [
+            require.resolve('style-loader'),
+            require.resolve('css-loader'),
+          ],
+        },
       ],
-    });
-
-    // Plain CSS imported by our code (e.g. FrameComponent → @mantine/core/styles.css).
-    // issuer guard: only fires for CSS our code imports, not CSS Playroom's own
-    // internals import (e.g. codemirror theme files) — prevents double-processing.
-    config.module.rules.push({
-      test: /\.css$/,
-      exclude: /\.module\.css$/,
-      issuer: { not: /node_modules\/playroom/ },
-      use: [
-        require.resolve('style-loader'),
-        require.resolve('css-loader'),
-      ],
-    });
-
-    return config;
-  },
+    },
+  }),
 };

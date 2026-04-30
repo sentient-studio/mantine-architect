@@ -18,7 +18,7 @@ import { ButtonMenu, type ButtonMenuItem } from './ButtonMenu';
  * blue.8 = 4.63:1 ✅).
  */
 
-const defaultItems: ButtonMenuItem[] = [
+export const defaultItems: ButtonMenuItem[] = [
   { value: 'project', label: 'Project', icon: <IconBoxSeam size={16} /> },
   { value: 'task', label: 'Task', icon: <IconSquareCheck size={16} /> },
   { value: 'team', label: 'Team', icon: <IconUsers size={16} /> },
@@ -29,6 +29,7 @@ const meta: Meta<typeof ButtonMenu> = {
   title: 'Components/ButtonMenu',
   component: ButtonMenu,
   tags: ['autodocs'],
+  excludeStories: ['defaultItems'],
   parameters: {
     layout: 'centered',
   },

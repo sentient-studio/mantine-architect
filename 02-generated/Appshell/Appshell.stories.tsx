@@ -58,6 +58,7 @@ export function MainContent() {
 }
 
 const meta: Meta<typeof Appshell> = {
+  excludeStories: ['NavSlot', 'AsideSlot', 'MainContent'],
   title: 'Components/Appshell',
   component: Appshell,
   tags: ['autodocs'],
