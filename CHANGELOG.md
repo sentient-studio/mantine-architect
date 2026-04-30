@@ -14,24 +14,27 @@ Playroom (`http://localhost:9000`) added as a fully standalone JSX sandbox — n
 **Why standalone?** The Storybook adapter embeds Playroom inside Storybook's Vite preview iframe. That integration surface caused Vite↔webpack CSS double-processing, CJS/ESM resolution failures, and `react-element-to-jsx-string` import conflicts that broke Storybook story rendering. Keeping the two tools independent eliminates the entire class of problem.
 
 **New files:**
-- `playroom.config.js` — webpack CSS fixes and Mantine `displayName` transform, isolated from Storybook
+- `playroom.config.js` — webpack fixes, `storageKey`, `exampleCode`
 - `playroom/FrameComponent.jsx` — `<MantineProvider theme={{ primaryShade: 8 }}>` frame wrapper
 - `playroom/components.js` — generated components + Mantine layout primitives + story helpers + Tabler icons
 - `scripts/test-playroom-helpers.sh` — 12-test suite for the registration functions
 
 **Auto-registration in `dispatch-agent.sh`:**
-After every successful Stage 2+3 run, `register_playroom_component()` and `register_playroom_story_helpers()` update `playroom/components.js` automatically. Both are idempotent.
+After every successful Stage 2+3 run, `register_playroom_component()` and `register_playroom_story_helpers()` update `playroom/components.js` automatically. Both are idempotent. `register_playroom_story_helpers()` also adds helpers to `excludeStories` in the meta object so Storybook ignores them. Existing story files updated: `Appshell`, `ButtonMenu`, `Modal`, `Select`, `Table`.
 
 **`npm run dev`** starts Storybook (port 6006) and Playroom (port 9000) concurrently via `concurrently`.
 
 **Webpack fixes in `playroom.config.js`:**
-- Babel loader (`babel-loader` + `@babel/preset-env/react/typescript`) for `.tsx/.ts/.jsx` — Playroom's internal Babel loader uses `include: includePaths` scoped to its own source, leaving our components and `FrameComponent.jsx` unprocessed without this rule
-- CSS modules rule (`style-loader + css-loader modules + postcss-loader`) for component `.module.css` files
+- Babel loader (`babel-loader` + `@babel/preset-env/react/typescript`) for `.tsx/.ts/.jsx` — Playroom's internal Babel loader uses `include: includePaths` scoped to its own source, leaving our components and `FrameComponent.jsx` unprocessed
+- CSS modules: `MiniCssExtractPlugin.loader + css-loader({ modules: { namedExport: false } }) + postcss-loader` — `style-loader@4` does not reliably re-export CSS module locals alongside `MiniCssExtractPlugin`; `namedExport: false` is required because css-loader v7 defaults to named-only exports but our components use default imports
 - `issuer: { not: /node_modules\/playroom/ }` guard on the plain-CSS rule prevents codemirror theme double-processing
-- `reactElementToJSXStringOptions.displayName` strips `@mantine/core/` prefix from all Mantine component display names
 
-**Story helper exports + `excludeStories`:**
-Any named export from a CSF story file is treated as a story by Storybook. Helper functions/consts used as Playroom fixtures must be listed in `excludeStories` in the meta object. `register_playroom_story_helpers()` now adds them automatically. Existing story files updated: `Appshell`, `ButtonMenu`, `Modal`, `Select`, `Table`.
+**Storybook → Playroom copy flow (`parameters.docs.source.transform`):**
+Mantine components carry `displayName: '@mantine/core/ComponentName'`. `react-element-to-jsx-string` uses `displayName` verbatim, so Storybook's "Show code" snippets produced invalid JSX like `<@mantine/core/Text>`. Added a `transform` in `.storybook/preview.tsx` that strips the `@scope/package/` prefix from all generated snippets, making them valid JSX that can be pasted directly into Playroom.
+
+**`storageKey: 'mantine-architect-v1'`** — explicit localStorage key prevents stale sessions (from the old `storybook-addon-playroom` integration) from loading in the new standalone Playroom. Bump to `v2` etc. to reset all sessions after a major scope change.
+
+**`exampleCode`** — clean starting template shown in the code panel for new sessions, demonstrating `Text`, `ButtonMenu`, `Badge`, `Group`, `Stack` usage without imports.
 
 ---
 
