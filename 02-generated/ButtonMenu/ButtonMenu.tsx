@@ -58,7 +58,7 @@ const iconSizes: Record<MantineSize, number> = { xs: 12, sm: 14, md: 16, lg: 18,
  */
 export function ButtonMenu({
   label = 'Create new',
-  items,
+  items = [],
   onItemClick,
   disabled = false,
   loading = false,

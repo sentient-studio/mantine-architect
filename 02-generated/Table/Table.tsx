@@ -51,8 +51,8 @@ type SortDirection = 'asc' | 'desc' | null;
  * footer cells use gray.7 text (7.45:1) — never gray.6 (3.15:1).
  */
 export function DataTable({
-  columns,
-  data,
+  columns = [],
+  data = [],
   footerData,
   striped = false,
   highlightOnHover = false,
