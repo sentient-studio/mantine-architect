@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "Automated Mantine component generation from Figma",
   "scripts": {
+    "dev": "concurrently -n storybook,playroom -c cyan,magenta \"storybook dev -p 6006\" \"playroom start\"",
     "storybook": "storybook dev -p 6006",
+    "playroom": "playroom start",
+    "build-playroom": "playroom build",
     "test:playwright": "playwright test",
     "build-storybook": "storybook build"
   },
@@ -37,14 +40,19 @@
     "@vitest/browser-playwright": "^4.1.2",
     "@vitest/coverage-v8": "^4.1.2",
     "axe-core": "^4.8.0",
+    "concurrently": "^9.2.1",
+    "css-loader": "^7.1.4",
     "eslint": "^8.0.0",
     "eslint-plugin-storybook": "^10.3.4",
+    "playroom": "^1.2.2",
     "playwright": "^1.59.1",
     "postcss": "^8.5.8",
+    "postcss-loader": "^8.2.1",
     "postcss-preset-mantine": "^1.18.0",
     "prettier": "^3.0.0",
     "prop-types": "^15.8.1",
     "storybook": "^10.3.4",
+    "style-loader": "^4.0.0",
     "vitest": "^4.1.2"
   },
   "eslintConfig": {

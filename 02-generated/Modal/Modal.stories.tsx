@@ -97,7 +97,7 @@ type Story = StoryObj<typeof Modal>;
 /* Uses @mantine/form for field-level validation; calls onClose on success.     */
 /* Includes confirmPassword field matching Figma design (Drawer does not).      */
 
-function RegistrationForm({ onClose }: { onClose: () => void }) {
+export function RegistrationForm({ onClose }: { onClose: () => void }) {
   const form = useForm({
     initialValues: {
       firstName: '',

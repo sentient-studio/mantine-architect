@@ -4,16 +4,16 @@ import DataTable, { type TableColumn } from './Table';
 
 // ── Shared fixtures ─────────────────────────────────────────────────────────
 
-const COLUMNS: TableColumn[] = [
+export const COLUMNS: TableColumn[] = [
   { key: 'position', label: 'Position', width: 100 },
   { key: 'name',     label: 'Element name' },
   { key: 'symbol',   label: 'Symbol', width: 80 },
   { key: 'mass',     label: 'Atomic mass', width: 120 },
 ];
 
-const SORTABLE_COLUMNS: TableColumn[] = COLUMNS.map((c) => ({ ...c, sortable: true }));
+export const SORTABLE_COLUMNS: TableColumn[] = COLUMNS.map((c) => ({ ...c, sortable: true }));
 
-const DATA = [
+export const DATA = [
   { position: 6,  name: 'Carbon',   symbol: 'C',  mass: 12.011 },
   { position: 7,  name: 'Nitrogen', symbol: 'N',  mass: 14.007 },
   { position: 39, name: 'Yttrium',  symbol: 'Y',  mass: 88.906 },
@@ -21,7 +21,7 @@ const DATA = [
   { position: 58, name: 'Cerium',   symbol: 'Ce', mass: 140.12 },
 ];
 
-const FOOTER_DATA = {
+export const FOOTER_DATA = {
   position: '',
   name: 'Total',
   symbol: '5',
@@ -30,7 +30,7 @@ const FOOTER_DATA = {
 
 // Partial footer — 'position' and 'symbol' keys intentionally omitted
 // to exercise the `footerData[col.key] ?? ''` fallback branch
-const PARTIAL_FOOTER_DATA = {
+export const PARTIAL_FOOTER_DATA = {
   name: 'Total elements',
   mass: '392.374',
 };

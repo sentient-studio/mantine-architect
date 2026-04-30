@@ -5,6 +5,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.56.0] — 2026-04-30
+
+### Added — Playroom standalone integration
+
+Playroom (`http://localhost:9000`) added as a fully standalone JSX sandbox — no `storybook-addon-playroom`, no shared webpack/Vite config with Storybook.
+
+**Why standalone?** The Storybook adapter embeds Playroom inside Storybook's Vite preview iframe. That integration surface caused Vite↔webpack CSS double-processing, CJS/ESM resolution failures, and `react-element-to-jsx-string` import conflicts that broke Storybook story rendering. Keeping the two tools independent eliminates the entire class of problem.
+
+**New files:**
+- `playroom.config.js` — webpack CSS fixes and Mantine `displayName` transform, isolated from Storybook
+- `playroom/FrameComponent.jsx` — `<MantineProvider theme={{ primaryShade: 8 }}>` frame wrapper
+- `playroom/components.js` — generated components + Mantine layout primitives + story helpers + Tabler icons
+- `scripts/test-playroom-helpers.sh` — 12-test suite for the registration functions
+
+**Auto-registration in `dispatch-agent.sh`:**
+After every successful Stage 2+3 run, `register_playroom_component()` and `register_playroom_story_helpers()` update `playroom/components.js` automatically. Both are idempotent.
+
+**`npm run dev`** starts Storybook (port 6006) and Playroom (port 9000) concurrently via `concurrently`.
+
+**Webpack fixes in `playroom.config.js`:**
+- CSS modules rule (`style-loader + css-loader modules + postcss-loader`) for component `.module.css` files
+- `issuer: { not: /node_modules\/playroom/ }` guard on the plain-CSS rule prevents codemirror theme double-processing
+- `reactElementToJSXStringOptions.displayName` strips `@mantine/core/` prefix from all Mantine component display names
+
+---
+
 ## [0.54.0] — 2026-04-17
 
 ### Added — `radius` prop on Button and ButtonMenu

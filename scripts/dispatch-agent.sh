@@ -588,6 +588,127 @@ show_approval_gate() {
   fi
 }
 
+register_playroom_component() {
+  # Adds the component to playroom/components.js under the Generated components
+  # section.  Idempotent — skips if the line is already present.
+  local PLAYROOM_COMPONENTS="$PROJECT_ROOT/playroom/components.js"
+  if [ ! -f "$PLAYROOM_COMPONENTS" ]; then
+    echo "  ⚠️  playroom/components.js not found — skipping Playroom registration"
+    return 0
+  fi
+
+  # Determine the exported function name from the TSX file
+  local TSX_FILE="$PROJECT_ROOT/02-generated/$COMPONENT/$COMPONENT.tsx"
+  local EXPORT_NAME
+  EXPORT_NAME=$(grep -Em1 "^export (default )?function" "$TSX_FILE" 2>/dev/null \
+    | sed -E 's/export (default )?function //;s/[( ].*//' | tr -d ' ')
+  [ -z "$EXPORT_NAME" ] && EXPORT_NAME="$COMPONENT"
+
+  local IMPORT_LINE="export { $EXPORT_NAME } from '../02-generated/$COMPONENT/$COMPONENT';"
+
+  if grep -qF "$IMPORT_LINE" "$PLAYROOM_COMPONENTS"; then
+    echo "  ↩  Playroom: $EXPORT_NAME already registered"
+    return 0
+  fi
+
+  # Insert before the '// ─── Mantine layout' marker, falling back to appending
+  python3 - "$PLAYROOM_COMPONENTS" "$IMPORT_LINE" <<'PYEOF'
+import sys
+path, new_line = sys.argv[1], sys.argv[2]
+content = open(path).read()
+marker = '// ─── Mantine layout'
+if marker in content:
+    content = content.replace(marker, new_line + '\n' + marker, 1)
+else:
+    content = content.rstrip() + '\n' + new_line + '\n'
+open(path, 'w').write(content)
+PYEOF
+  echo "  ✅ Playroom: registered $EXPORT_NAME"
+}
+
+register_playroom_story_helpers() {
+  # Parses <Component>.stories.tsx for top-level helpers (functions and consts
+  # that are NOT Story/StoryObj/Meta typed), adds export keyword if missing,
+  # and inserts named re-exports into playroom/components.js.
+  # Idempotent — skips helpers already present in components.js.
+  local PLAYROOM_COMPONENTS="$PROJECT_ROOT/playroom/components.js"
+  local STORIES_TSX="$PROJECT_ROOT/02-generated/$COMPONENT/$COMPONENT.stories.tsx"
+
+  if [ ! -f "$PLAYROOM_COMPONENTS" ]; then return 0; fi
+  if [ ! -f "$STORIES_TSX" ]; then return 0; fi
+
+  python3 - "$STORIES_TSX" "$PLAYROOM_COMPONENTS" "$COMPONENT" <<'PYEOF'
+import sys, re
+
+stories_path  = sys.argv[1]
+components_path = sys.argv[2]
+component_name  = sys.argv[3]
+
+# Matches StoryObj / Story / Meta typed identifiers — skip these
+STORY_TYPE_RE = re.compile(r':\s*(?:Story|StoryObj|Meta)\b')
+# Top-level function or const declaration (possibly already exported)
+DECL_RE = re.compile(r'^(export\s+)?(async\s+)?(?:function|const)\s+([A-Za-z_]\w*)')
+# Always-skip names
+SKIP_NAMES = {'meta'}
+
+lines = open(stories_path).read().splitlines()
+helpers = []  # names to register
+modified_lines = list(lines)
+
+for i, line in enumerate(lines):
+    m = DECL_RE.match(line)
+    if not m:
+        continue
+    already_exported = bool(m.group(1))
+    name = m.group(3)
+    if name.lower() in SKIP_NAMES:
+        continue
+    # Peek at the rest of the line + next line for Story/Meta type annotation
+    context = line + (' ' + lines[i+1] if i+1 < len(lines) else '')
+    if STORY_TYPE_RE.search(context):
+        continue
+    # This is a helper — ensure it is exported
+    if not already_exported:
+        modified_lines[i] = 'export ' + line
+    helpers.append(name)
+
+# Write back story file if we added any export keywords
+if modified_lines != lines:
+    open(stories_path, 'w').write('\n'.join(modified_lines) + '\n')
+
+if not helpers:
+    sys.exit(0)
+
+components_content = open(components_path).read()
+
+# Filter helpers already registered
+new_helpers = [h for h in helpers
+               if h not in components_content.split()]
+
+if not new_helpers:
+    sys.exit(0)
+
+# Build re-export line
+exports_str = ', '.join(new_helpers)
+import_line = (
+    f"export {{ {exports_str} }}"
+    f" from '../02-generated/{component_name}/{component_name}.stories';"
+)
+
+# Insert before '// ─── Tabler icons' section, otherwise append
+marker = '// ─── Tabler icons'
+if marker in components_content:
+    components_content = components_content.replace(
+        marker, import_line + '\n' + marker, 1
+    )
+else:
+    components_content = components_content.rstrip() + '\n' + import_line + '\n'
+
+open(components_path, 'w').write(components_content)
+print(f"  ✅ Playroom story helpers: {exports_str}")
+PYEOF
+}
+
 select_stage23_model() {
   # Returns the model ID to use for Stage 2+3 based on plan complexity.
   # Haiku:  0 BLOCK + 0 ADAPT conflicts AND plan file < 12 KB
@@ -705,6 +826,10 @@ run_stage23() {
     exit $STAGE23_EXIT
   fi
 
+  # ─── Playroom registration ──────────────────────────────────────────────────
+  register_playroom_component
+  register_playroom_story_helpers
+
   # ─── Completion summary ─────────────────────────────────────────────────────
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -724,7 +849,7 @@ run_stage23() {
   echo -e "${BLUE}📄 Stage 2+3 log:${NC} $LOG_FILE_23"
   echo ""
   echo "Next steps:"
-  echo "  npm run storybook"
+  echo "  npm run dev          # start Storybook (6006) + Playroom (9000) together"
   echo "  npm run test:playwright"
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -794,6 +919,8 @@ run_escalation() {
 # ═════════════════════════════════════════════════════════════════════════════
 # MAIN FLOW
 # ═════════════════════════════════════════════════════════════════════════════
+# Guard: skip main flow when this script is sourced (e.g. by test suites).
+[ "${BASH_SOURCE[0]}" != "${0}" ] && return 0
 
 if [ "$STAGE" = "1" ]; then
   run_stage1

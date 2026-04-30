@@ -14,7 +14,7 @@ import { Appshell } from './Appshell';
 
 /* ─── Slot content helpers ─────────────────────────────────────────────────── */
 
-function NavSlot() {
+export function NavSlot() {
   return (
     <Stack p="md" gap={4}>
       {/* style override required: color="blue.9" sets the background correctly but
@@ -33,7 +33,7 @@ function NavSlot() {
   );
 }
 
-function AsideSlot() {
+export function AsideSlot() {
   return (
     <Stack p="md" gap="sm">
       <Text fw={500} size="sm" c="gray.7">Activity</Text>
@@ -44,7 +44,7 @@ function AsideSlot() {
   );
 }
 
-function MainContent() {
+export function MainContent() {
   return (
     <Stack p="md">
       <Text fw={500}>Main Content Area</Text>

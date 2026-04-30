@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Container, Stack } from '@mantine/core';
 import Select from './Select';
 
-const FRUIT_OPTIONS = [
+export const FRUIT_OPTIONS = [
   { value: 'apple', label: 'Apple' },
   { value: 'banana', label: 'Banana' },
   { value: 'cherry', label: 'Cherry' },

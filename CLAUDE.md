@@ -12,8 +12,9 @@ This project auto-generates production-ready Mantine v7 components from Figma de
 02-generated/       — AI-generated components (one folder per component)
 03-figma-links/     — components.md tracker (Figma URL → status)
 .storybook/         — Storybook config (main.js, preview.js)
+playroom/           — Playroom sandbox (components.js, FrameComponent.jsx)
 scripts/            — dispatch-agent.sh, batch-generate.sh, quality-gate.sh, validate-batch.sh,
-                      figma-pushback.sh, test-figma-pushback.sh
+                      figma-pushback.sh, test-figma-pushback.sh, test-playroom-helpers.sh
 mantine-architect-mcp/ — MCP server wrapping dispatch-agent.sh (Claude Desktop integration)
   src/index.ts      — stdio MCP server entry point (v1.1.0)
   src/runner.ts     — job manager: spawns dispatch-agent.sh, persists state, plan cache, llms freshness
@@ -285,6 +286,49 @@ Figma URLs: both `figma.com/file/` and `figma.com/design/` formats accepted.
 - Storybook: `npm run storybook` → `http://localhost:6006`
 - Playwright UI: `npm run test:playwright:ui` → `http://localhost:8080`
 - Tests: `npm run test:playwright`
+
+---
+
+## Playroom
+
+A standalone JSX sandbox at `http://localhost:9000` — completely separate from Storybook (no addon bridge). Start both together with `npm run dev`, or Playroom alone with `npm run playroom`.
+
+**Design philosophy: keep them apart.**
+The Storybook adapter (`storybook-addon-playroom`) was removed because the Vite↔webpack integration surface caused persistent rendering failures in both tools. Playroom is intentionally isolated: it has its own webpack dev server, its own components scope, and zero shared config with Storybook.
+
+### Config files
+
+| File | Purpose |
+|---|---|
+| `playroom.config.js` | Entry point — components, frame, widths, webpack overrides, displayName fix |
+| `playroom/FrameComponent.jsx` | Wraps every frame in `<MantineProvider theme={{ primaryShade: 8 }}>` |
+| `playroom/components.js` | Scope: generated components + Mantine layout primitives + story helpers + Tabler icons |
+
+### Webpack fixes (in `playroom.config.js` only — no Storybook config changes)
+
+**CSS modules** — components import `.module.css` files that need PostCSS for `rem()` transforms. Added a `style-loader + css-loader (modules: true) + postcss-loader` rule for `.module.css`.
+
+**Codemirror double-processing** — Playroom's internal webpack processes its own CSS (codemirror themes, etc.). Without a guard, our plain-CSS rule also ran on those files and errored. Fixed with `issuer: { not: /node_modules\/playroom/ }` on the plain-CSS rule — prevents it from firing for CSS imported by Playroom's own code.
+
+**Mantine `displayName`** — all Mantine components carry `displayName: '@mantine/core/ComponentName'`, which produces invalid JSX in the code panel. Fixed via `reactElementToJSXStringOptions.displayName` in `playroom.config.js` — strips the `@scope/package/` prefix.
+
+### Auto-registration after Stage 2+3
+
+`dispatch-agent.sh` calls two functions after a successful Stage 2+3 run:
+
+1. **`register_playroom_component()`** — adds `export { ComponentName } from '../02-generated/...'` to `playroom/components.js` before the Mantine layout section. Resolves the exported function name from the TSX file (handles `DataTable` for the `Table` component). Idempotent.
+
+2. **`register_playroom_story_helpers()`** — parses the story file for top-level helpers (functions and consts that are NOT Story/StoryObj/Meta typed), adds `export` keyword if missing, and inserts a named re-export line into `playroom/components.js` before the Tabler icons section. Idempotent.
+
+**Test suite:** `./scripts/test-playroom-helpers.sh` — 12 tests covering registration, idempotency, DataTable name resolution, Story-type exclusion, missing-file graceful skip, and section ordering.
+
+### Scope in `playroom/components.js`
+
+- Generated components (explicit named imports — one per component)
+- Mantine layout/display primitives that don't collide with our components (Box, Stack, Group, Text, etc.). Components we wrap (Badge, Checkbox, Modal, Drawer, Select, MultiSelect) are intentionally omitted — use our custom versions.
+- Aliased Mantine primitives: `MantineButton`, `MantineTable`, `MantineMenu`, etc.
+- Story-local helpers (explicit named imports — avoids `export *` collision across story files)
+- `export * from '@tabler/icons-react'`
 
 ---
 
