@@ -1,3 +1,7 @@
+// Playroom uses MiniCssExtractPlugin internally — we reference the same loader
+// so both our CSS rules and Playroom's are consistent in the same compilation.
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+
 /** @type {import('playroom').Config} */
 module.exports = {
   components: './playroom/components.js',
@@ -28,6 +32,11 @@ module.exports = {
   // Playroom's own CSS rule carries issuer: /node_modules\/playroom/ so it only
   // fires for CSS imported by Playroom's internals (codemirror themes etc.).
   // Our rules below cover the remaining cases without overlap.
+  //
+  // We use MiniCssExtractPlugin.loader (not style-loader) to stay consistent
+  // with Playroom's own CSS pipeline. style-loader@4 does not reliably
+  // re-export CSS module locals (.default) when used alongside MiniCssExtractPlugin
+  // in the same compilation, causing `classes.foo` to be undefined at runtime.
   webpackConfig: () => ({
     module: {
       rules: [
@@ -49,11 +58,19 @@ module.exports = {
           }],
         },
         // CSS modules — component .module.css files need PostCSS for rem() transforms.
+        // MiniCssExtractPlugin.loader is already in Playroom's plugin list; using it
+        // here keeps both pipelines consistent and correctly exports module locals.
+        // namedExport: false — css-loader v7 defaults to named-only exports; our
+        // components use `import classes from './Foo.module.css'` (default import),
+        // so we need the traditional `export default { root: 'hash', ... }` form.
         {
           test: /\.module\.css$/,
           use: [
-            require.resolve('style-loader'),
-            { loader: require.resolve('css-loader'), options: { modules: true } },
+            MiniCssExtractPlugin.loader,
+            {
+              loader: require.resolve('css-loader'),
+              options: { modules: { namedExport: false } },
+            },
             require.resolve('postcss-loader'),
           ],
         },
@@ -65,7 +82,7 @@ module.exports = {
           exclude: /\.module\.css$/,
           issuer: { not: /node_modules\/playroom/ },
           use: [
-            require.resolve('style-loader'),
+            MiniCssExtractPlugin.loader,
             require.resolve('css-loader'),
           ],
         },
