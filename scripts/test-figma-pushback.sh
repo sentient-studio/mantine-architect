@@ -151,6 +151,19 @@ OUT_D=$(FIGMA_ACCESS_TOKEN="" bash "$PUSHBACK_SCRIPT" "$FILE_KEY" "$FIGMA_LINK" 
   --dry-run 2>&1)
 assert_contains "T19 category D expands" "Thin Wrapper Docs Gap" "$OUT_D"
 
+# T19b: Category E → expanded label (was previously missing from figma-pushback.sh's
+# case statement entirely -- category E fell through to the raw-letter fallback)
+OUT_E=$(FIGMA_ACCESS_TOKEN="" bash "$PUSHBACK_SCRIPT" "$FILE_KEY" "$FIGMA_LINK" \
+  '[{"node_id":"1:1","severity":"ADAPT","category":"E","summary":"Omitted variant","detail":"Fix omission."}]' \
+  --dry-run 2>&1)
+assert_contains "T19b category E expands" "Design Omissions & Visual Deviations" "$OUT_E"
+
+# T19c: Category F → expanded label
+OUT_F=$(FIGMA_ACCESS_TOKEN="" bash "$PUSHBACK_SCRIPT" "$FILE_KEY" "$FIGMA_LINK" \
+  '[{"node_id":"1:1","severity":"ADAPT","category":"F","summary":"Token semantic mismatch","detail":"Fix token."}]' \
+  --dry-run 2>&1)
+assert_contains "T19c category F expands" "Token Hygiene" "$OUT_F"
+
 # T20: Comment header line present
 assert_contains "T20 🤖 header present" "🤖 Mantine Architect" "$OUT"
 
@@ -454,6 +467,26 @@ else
   [ "$(item_count "$OUT39")" = "1" ] \
     && ok "T39 ADAPT severity (valid) → kept" \
     || fail "T39 ADAPT" "count=$(item_count "$OUT39")"
+
+  # T39b: category 'C2' (the old stage1-prompt.md example's literal value) →
+  # stripped. Regression guard: the prompt previously documented "C2" as the
+  # literal JSON value for the design-system-token-contrast-failure sub-case,
+  # but VALID_CAT only ever accepted single letters -- meaning every Category
+  # C2 pushback item emitted exactly as documented would have been silently
+  # dropped here and never reached Figma. Fixed by changing the prompt's
+  # example to emit "C" (severity ADAPT already disambiguates it from C1).
+  C2_ITEM='{"node_id":"1:1","severity":"ADAPT","category":"C2","summary":"s","detail":"d"}'
+  OUT39B=$(run_val "[$C2_ITEM]")
+  [ "$(item_count "$OUT39B")" = "0" ] \
+    && ok "T39b category 'C2' → stripped (must use bare 'C')" \
+    || fail "T39b C2 stripped" "count=$(item_count "$OUT39B")"
+
+  # T39c: category 'F' (Token Hygiene) → passes through
+  F_ITEM='{"node_id":"1:1","severity":"ADAPT","category":"F","summary":"s","detail":"d"}'
+  OUT39C=$(run_val "[$F_ITEM]")
+  [ "$(item_count "$OUT39C")" = "1" ] \
+    && ok "T39c category F (valid) → kept" \
+    || fail "T39c category F" "count=$(item_count "$OUT39C")"
 
   rm -f "$TMP_VAL"
 fi

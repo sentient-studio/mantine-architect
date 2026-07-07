@@ -66,7 +66,7 @@ Stage 1 automatically posts architectural conflict comments back to Figma when t
 **How it works:**
 1. Stage 1 agent emits `<PUSHBACK>[…]</PUSHBACK>` after `<STAGE1_PLAN>` for any 🔴 or 🟡 conflict
 2. `dispatch-agent.sh::run_figma_pushback()` extracts the block, then runs two Haiku utility passes:
-   - **Validation** (`validate_pushback_json()`): strips items with missing fields, invalid severity (must be `BLOCK`/`ADAPT`), or invalid category (must be A–E); warns inline
+   - **Validation** (`validate_pushback_json()`): strips items with missing fields, invalid severity (must be `BLOCK`/`ADAPT`), or invalid category (must be A–F); warns inline
    - **Prose rewrite** (`rewrite_pushback_prose()`): Haiku rewrites each `detail` field into assertive architect voice — constraint-led, active voice; falls back to original on any failure; skip with `SKIP_PUSHBACK_PROSE_REWRITE=1`
 3. `figma-pushback.sh` posts a REST comment to `POST /v1/files/:key/comments` anchored to the node
 
@@ -84,7 +84,7 @@ Stage 1 automatically posts architectural conflict comments back to Figma when t
 ```
 Rules: 🔴 BLOCK and 🟡 ADAPT only; 🔵 NOTE omitted; empty block omitted entirely.
 
-**Conflict categories (A–E):**
+**Conflict categories (A–F):**
 
 | Category | Severity | Triggers |
 |---|---|---|
@@ -93,10 +93,13 @@ Rules: 🔴 BLOCK and 🟡 ADAPT only; 🔵 NOTE omitted; empty block omitted en
 | C — Accessibility Tension | 🔵 NOTE | WCAG contrast failures, missing focus rings, tap targets |
 | D — Thin Wrapper Docs Gap | 🔵 NOTE | `extends MantineXxxProps` — Storybook autodocs will be blank |
 | E — Design Omissions & Visual Deviations | 🟡 ADAPT | Any Figma variant/prop/value that is changed or omitted in code |
+| F — Token Hygiene | 🟡 ADAPT | A design-token variable's semantic name doesn't match its actual visual role, or that role inverts between theme modes — e.g. a "border" token that's lighter than its paired "background" token in one mode but darker in another; a status-semantic token (e.g. a "pending" color) reused for an unrelated purpose like a generic hover/selected highlight |
 
-**Severity boundary (Category E especially):**
+**Severity boundary (Categories E and F especially):**
 - 🟡 ADAPT — anything the designer explicitly specified that the code does differently or omits. False positives (extra Figma notifications) are less harmful than silent deviations.
 - 🔵 NOTE — informational only; nothing the designer specified is lost (e.g. choosing Box over Paper, documenting a WCAG override, noting a design-tool artefact with no production meaning).
+
+**Category F is cross-cutting, not node-specific** — unlike A–E, the underlying issue is with the *shared token/variable itself*, not with how this one component implements this one node. Since `<PUSHBACK>` still requires a `node_id` to anchor the Figma comment to, anchor Category F items to whichever concrete node/component instance is currently being planned when the inconsistency is noticed (e.g. while resolving a variable's per-mode values via `get_variable_defs`), and name the actual variable path explicitly in `detail` so the comment reads as being about the token, not about that one component.
 
 **Idempotency:** each comment embeds `[MANTINE-ARCHITECT|<node_id>|<summary>]`; re-running Stage 1 skips comments that already exist.
 
@@ -109,7 +112,7 @@ FIGMA_ACCESS_TOKEN="" ./scripts/figma-pushback.sh FILE_KEY FIGMA_URL '[{...}]' -
 
 **Test suite:**
 ```bash
-./scripts/test-figma-pushback.sh   # 52 tests, 8 sections
+./scripts/test-figma-pushback.sh   # 56 tests, 8 sections
 ```
 
 ---

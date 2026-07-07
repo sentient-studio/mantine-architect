@@ -5,6 +5,39 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased] — 2026-07-07
+
+### Added — PUSHBACK Category F: Token Hygiene
+
+New conflict category for design-token variables whose semantic name doesn't match their
+actual visual role, or whose role inverts between theme modes — distinct from Category E
+(component implementation deviating from Figma), since F is about the *token itself* being
+inconsistent regardless of what any one component does with it. Discovered via two real
+findings while auditing `prometric-component-library`: a status-semantic token (`pending`)
+reused for an unrelated hover/selected highlight in two independent components, and a
+`errorBorder`/`errorBackground` pair whose "border"/"background" labels swap which one is
+actually the saturated color between theme modes (the root cause of a shipped Dark-theme
+contrast bug — see that repo's issue #30).
+
+Category F is 🟡 ADAPT (must reach Figma, unlike NOTE-severity items which are never posted)
+and, unlike A–E, is cross-cutting rather than node-specific — anchor to whichever concrete
+node/component is being planned when the inconsistency is noticed, and name the actual
+variable path explicitly so the comment reads as being about the token, not that component.
+
+Updated: `CLAUDE.md` (category table + anchoring guidance), `dispatch-agent.sh`'s
+`validate_pushback_json()` (`VALID_CAT` now `A`–`F`), `figma-pushback.sh` (category-label
+expansion case statement).
+
+**Bug fix found in the same pass:** `figma-pushback.sh`'s category-label case statement was
+missing Category E entirely (fell through to an unexpanded raw-letter fallback) — fixed
+alongside adding F.
+
+**Tests:** 4 new tests in `test-figma-pushback.sh` (T19b/T19c: category E/F label expansion;
+T39b: category `"C2"` correctly stripped as a regression guard; T39c: category `"F"` correctly
+passes validation) — 56 tests total, up from 52.
+
+---
+
 ## [0.56.0] — 2026-04-30
 
 ### Added — Playroom standalone integration

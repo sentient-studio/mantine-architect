@@ -15,7 +15,7 @@
 #   {
 #     "node_id":  "83:1773",
 #     "severity": "BLOCK",        # BLOCK | ADAPT
-#     "category": "A",            # A | B | C | D
+#     "category": "A",            # A | B | C | D | E | F
 #     "summary":  "short title",
 #     "detail":   "full explanation"
 #   }
@@ -159,6 +159,8 @@ build_comment() {
     B) CAT_LABEL="B — Layout Paradox" ;;
     C) CAT_LABEL="C — Accessibility Tension" ;;
     D) CAT_LABEL="D — Thin Wrapper Docs Gap" ;;
+    E) CAT_LABEL="E — Design Omissions & Visual Deviations" ;;
+    F) CAT_LABEL="F — Token Hygiene" ;;
     *) CAT_LABEL="$CATEGORY" ;;
   esac
 

@@ -365,13 +365,13 @@ extract_plan_from_log() {
 validate_pushback_json() {
   # Schema-validates a PUSHBACK JSON array.
   # Strips items with missing required fields, invalid severity (must be BLOCK|ADAPT),
-  # or invalid category (must be A–E). Warnings go to stderr; cleaned JSON to stdout.
+  # or invalid category (must be A–F). Warnings go to stderr; cleaned JSON to stdout.
   local json_in="$1"
   python3 -c "
 import json, sys
 
 VALID_SEV = {'BLOCK', 'ADAPT'}
-VALID_CAT = {'A', 'B', 'C', 'D', 'E'}
+VALID_CAT = {'A', 'B', 'C', 'D', 'E', 'F'}
 REQUIRED  = {'node_id', 'severity', 'category', 'summary', 'detail'}
 
 try:
@@ -390,7 +390,7 @@ for i, item in enumerate(items):
         print('WARNING: item ' + str(i) + ' invalid severity \"' + item['severity'] + '\" (must be BLOCK|ADAPT)', file=sys.stderr)
         continue
     if item['category'] not in VALID_CAT:
-        print('WARNING: item ' + str(i) + ' invalid category \"' + item['category'] + '\" (must be A-E)', file=sys.stderr)
+        print('WARNING: item ' + str(i) + ' invalid category \"' + item['category'] + '\" (must be A-F)', file=sys.stderr)
         continue
     valid.append(item)
 
