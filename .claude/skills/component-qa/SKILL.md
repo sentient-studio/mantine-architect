@@ -480,24 +480,28 @@ Write the generated file to `{RepoPath}/prometric-component-library/src/componen
 
 Show the user the generated mapping (node id, component name, which properties were mapped vs. intentionally omitted) and ask: **"Publish this Code Connect mapping to Figma now?"** — mirrors the existing `<PUSHBACK>` confirm-then-post pattern.
 
-- **Yes** → publish via the **CLI**, not the MCP tools (see below for why). Requires `@figma/code-connect` as a dev dependency and a `figma.config.json` (`{"codeConnect": {"parser": "react", "include": ["<glob matching your *.figma.ts files>"]}}`) in the target project — one-time setup per repo. Then run:
+- **Yes** → publish via the **CLI**, not the MCP tools (see below for why). Requires `@figma/code-connect` as a dev dependency and a `figma.config.json` (`{"codeConnect": {"parser": "react", "include": ["<glob matching your *.figma.ts files>"]}}`) in the target project — one-time setup per repo. Run from the target project's own package directory, not via a raw `node node_modules/.bin/...` path (unreliable if node_modules is hoisted or the repo nests the actual package one level deeper than the checkout root):
   ```bash
-  node node_modules/.bin/figma connect publish -t "$FIGMA_ACCESS_TOKEN" --skip-update-check
+  cd "<path to the package containing node_modules>" && yarn figma connect publish -t "$FIGMA_ACCESS_TOKEN" --skip-update-check
   ```
-  Read `FIGMA_ACCESS_TOKEN` from wherever the `figma` MCP server's own config sources it — never print or log the token value. A successful run prints `Successfully uploaded to Figma, for Code: -> <Name> <url>`.
+  `yarn <bin>` resolves `figma` from the local `node_modules/.bin` automatically — don't hardcode a `node_modules/.bin/figma` path. Read `FIGMA_ACCESS_TOKEN` from wherever the `figma` MCP server's own config sources it — never print or log the token value. A successful run prints `Successfully uploaded to Figma, for Code: -> <Name> <url>`; a failed run prints a clear error (e.g. a 403) and exits non-zero — check the exit code, don't just check for the absence of a crash.
   - `mcp__figma__send_code_connect_mappings`/`add_code_connect_map` **do not reliably persist the template** (see 8i) — don't use them as the publish step. They're still useful read-only for 8c/8d (discovery, existing-mapping check).
 - **No** → still commit the `.figma.ts` file to the docs PR so the work isn't lost. Note `"Code Connect: drafted, not published"` in the QA comment.
 
 ### 8i — Verify the template actually persisted
 
-A successful **CLI** publish is strong evidence the template saved (the CLI validates the file locally before uploading and reports errors clearly — e.g. a 403 for a token missing the required scope, not a silent partial success). Still, always re-check immediately after publishing to confirm:
+Two distinct failure modes here — don't conflate them in the QA comment:
 
+**A. The CLI publish command itself fails** (non-zero exit, e.g. a 403). Nothing new was written — any existing mapping is unchanged. **Root cause confirmed 2026-07-09:** this means `FIGMA_ACCESS_TOKEN` is missing the **Code Connect Write** scope (and/or File Read) — the error text says so directly (`"Invalid scope(s): ... File Read scope and the Code Connect Write scope"`). Stop here, don't fall back to the MCP publish tools to "make it work" (see below), and note `"Code Connect: ❌ publish failed — <error>, check FIGMA_ACCESS_TOKEN scope"` in the QA comment.
+
+**B. The CLI publish command succeeds** (exit 0, "Successfully uploaded..."), but a follow-up read still shows no template. This would be a genuinely new/unexpected failure mode — the CLI path is what actually produced `hasTemplate: true` on `prometric-component-library`'s `Button`, so a clean CLI success not persisting would need fresh investigation, not just re-applying this same root cause. Re-check with:
 ```
 mcp__figma__get_code_connect_map(nodeId, fileKey)
 ```
+- `"hasTemplate": true` → note `"Code Connect: ✅ published (with template)"` in the QA comment.
+- `"hasTemplate": false` despite a clean CLI success → note `"Code Connect: ⚠️ CLI reported success but hasTemplate still false — needs investigation"` and flag it to the user rather than assuming the known token-scope cause applies.
 
-- If the returned entry (or entries, for a component set) shows `"hasTemplate": true` → note `"Code Connect: ✅ published (with template)"` in the QA comment.
-- If `"hasTemplate": false` → something didn't persist. **Root cause confirmed 2026-07-09 (not a syntax issue):** the `FIGMA_ACCESS_TOKEN` needs the **Code Connect Write** scope (and File Read) — without it, `figma connect publish` fails cleanly with a 403 (`"Invalid scope(s): ... File Read scope and the Code Connect Write scope"`), which is the correct, debuggable failure mode. **Never use `mcp__figma__send_code_connect_mappings`/`add_code_connect_map` as a workaround if the CLI 403s** — those tools silently accept the same under-scoped token and write a source-link-only record with no error, which looks like success but isn't. If the CLI 403s, stop and tell the user the token needs regenerating with that scope — don't fall back to the MCP publish path and report a false success. Note `"Code Connect: ⚠️ published source-link only — template did not persist (check FIGMA_ACCESS_TOKEN scope)"` in the QA comment if this happens.
+**Never use `mcp__figma__send_code_connect_mappings`/`add_code_connect_map` as a workaround for a failed or unconfirmed CLI publish** — those tools silently accept an under-scoped token and write a source-link-only record with no error, which looks like success but isn't (this is exactly the confusion that produced the original `hasTemplate: false` reports before the CLI was used to root-cause it). If you ever do fall back to them deliberately (e.g. CLI genuinely unusable in this environment), note `"Code Connect: ⚠️ published source-link only via MCP fallback — template not attempted"` — don't call it a plain publish success.
 
 ---
 
