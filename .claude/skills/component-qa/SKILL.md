@@ -480,19 +480,24 @@ Write the generated file to `{RepoPath}/prometric-component-library/src/componen
 
 Show the user the generated mapping (node id, component name, which properties were mapped vs. intentionally omitted) and ask: **"Publish this Code Connect mapping to Figma now?"** — mirrors the existing `<PUSHBACK>` confirm-then-post pattern.
 
-- **Yes** → `mcp__figma__send_code_connect_mappings`, passing the file's contents as `template`.
+- **Yes** → publish via the **CLI**, not the MCP tools (see below for why). Requires `@figma/code-connect` as a dev dependency and a `figma.config.json` (`{"codeConnect": {"parser": "react", "include": ["<glob matching your *.figma.ts files>"]}}`) in the target project — one-time setup per repo. Then run:
+  ```bash
+  node node_modules/.bin/figma connect publish -t "$FIGMA_ACCESS_TOKEN" --skip-update-check
+  ```
+  Read `FIGMA_ACCESS_TOKEN` from wherever the `figma` MCP server's own config sources it — never print or log the token value. A successful run prints `Successfully uploaded to Figma, for Code: -> <Name> <url>`.
+  - `mcp__figma__send_code_connect_mappings`/`add_code_connect_map` **do not reliably persist the template** (see 8i) — don't use them as the publish step. They're still useful read-only for 8c/8d (discovery, existing-mapping check).
 - **No** → still commit the `.figma.ts` file to the docs PR so the work isn't lost. Note `"Code Connect: drafted, not published"` in the QA comment.
 
 ### 8i — Verify the template actually persisted
 
-A successful `send_code_connect_mappings` call is **not proof the rich mapping was saved** — it can silently accept `componentName`/`source`/`label` while dropping the `template` field entirely, falling back to a bare "jump to source" (`component_browser`) record. Always re-check immediately after publishing:
+A successful **CLI** publish is strong evidence the template saved (the CLI validates the file locally before uploading and reports errors clearly — e.g. a 403 for a token missing the required scope, not a silent partial success). Still, always re-check immediately after publishing to confirm:
 
 ```
 mcp__figma__get_code_connect_map(nodeId, fileKey)
 ```
 
 - If the returned entry (or entries, for a component set) shows `"hasTemplate": true` → note `"Code Connect: ✅ published (with template)"` in the QA comment.
-- If `"hasTemplate": false` despite passing a `template` → the prop-mapping logic was dropped. Note `"Code Connect: ⚠️ published source-link only — template did not persist"` in the QA comment. Do not report this as a plain success. This is a known open issue (observed on Button, 2026-07-09) — likely a mismatch between the `.figma.ts` MCP-template syntax taught by the `figma-code-connect` skill and whatever format `send_code_connect_mappings`'s `template` parameter actually expects (possibly the CLI/parser `figma.connect()` format instead). Still non-blocking — a source-link-only mapping is strictly better than no mapping.
+- If `"hasTemplate": false` → something didn't persist. **Root cause confirmed 2026-07-09 (not a syntax issue):** the `FIGMA_ACCESS_TOKEN` needs the **Code Connect Write** scope (and File Read) — without it, `figma connect publish` fails cleanly with a 403 (`"Invalid scope(s): ... File Read scope and the Code Connect Write scope"`), which is the correct, debuggable failure mode. **Never use `mcp__figma__send_code_connect_mappings`/`add_code_connect_map` as a workaround if the CLI 403s** — those tools silently accept the same under-scoped token and write a source-link-only record with no error, which looks like success but isn't. If the CLI 403s, stop and tell the user the token needs regenerating with that scope — don't fall back to the MCP publish path and report a false success. Note `"Code Connect: ⚠️ published source-link only — template did not persist (check FIGMA_ACCESS_TOKEN scope)"` in the QA comment if this happens.
 
 ---
 
@@ -502,8 +507,9 @@ mcp__figma__get_code_connect_map(nodeId, fileKey)
 - **Non-blocking** — a missing Figma reference, an unpublished component, a thin/property-poor mapping, a declined publish, or a template that fails to persist (8i) never fails the QA verdict.
 - **Idempotent by overwrite, not skip** — unlike `<PUSHBACK>`, Step 8 always regenerates the mapping when one already exists rather than skipping. Component props drift over time; a stale mapping is worse than a duplicate comment.
 - **One node returns many components** — `get_code_connect_suggestions` surfaces every unmapped nested component, not just the one under review. Always filter to the resolved `mainComponentNodeId`; never bulk-map the rest opportunistically from inside a single component's Stage 4 run.
+- **Publish via the CLI (`figma connect publish`), not the MCP tools** — `send_code_connect_mappings`/`add_code_connect_map` will accept a request and write a source-link-only record even when the token lacks the Code Connect Write scope, with no error. The CLI correctly 403s instead, which is the failure you actually want. Confirmed 2026-07-09 on `prometric-component-library`'s `Button` — see 8h/8i.
 - **A publish call succeeding is not the same as the template persisting** — see 8i. Always verify with a follow-up `get_code_connect_map` read before reporting success.
-- **Requires Figma Dev Mode + Code Connect to be enabled on the org/file** — this is a Figma plan/permission, not something this repo controls. Treat a publish failure here as informational the first time it's hit, not a skill bug.
+- **Requires Figma Dev Mode + Code Connect to be enabled on the org/file, and a token with the Code Connect Write scope** — the former is a Figma plan/permission this repo doesn't control; the latter is fixable by regenerating the token. Treat a CLI publish failure as informational/actionable (check the error message — scope vs. plan vs. something else), not a skill bug.
 
 ---
 
