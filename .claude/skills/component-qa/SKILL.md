@@ -145,6 +145,8 @@ Check against the sealed API contract from `copilot-instructions.md`.
 - [ ] Loading state story (if applicable)
 - [ ] Focus/keyboard behaviour story
 
+**Reference/prototype capability cross-check** — if a richer reference or prototype copy of this component exists anywhere in the repo tree (e.g. an earlier build under a `-main`/`-prototype`-suffixed directory), check whether it documents a prop, state, or behaviour the shipped component's prop interface doesn't have, or whether its docs contradict the shipped component's own JSDoc (e.g. a reference claiming a capability "is not supported" when the shipped component's JSDoc explicitly documents support for it). **Flag this as a finding — never silently fabricate docs for a capability the shipped component doesn't have, and never silently resolve a contradiction one way or the other.** The team decides whether the gap is real future scope or the reference is simply stale; Stage 4 QA's job is to surface the discrepancy, not adjudicate it.
+
 Gaps are findings — they go in the QA comment but do NOT block the PR.
 
 ---
@@ -282,6 +284,8 @@ Build a matrix after scanning all stories × 4 themes:
 
 ## Step 5 — Write MDX documentation
 
+**Check for a writing/content style guide first.** Look for a content-standards page in the target repo's Storybook tree — commonly under a path like `src/stories/content/` (introduction/voice-and-tone, UI text, empty states) — before drafting any prose. If one exists, apply its voice/tone rules and labelling conventions (e.g. verb-first, sentence-case) to "When to use" and any other prose in this file. If no such guide exists in this repo, note in the QA comment that prose tone is unstandardized rather than silently inventing a voice.
+
 Create `{RepoPath}/prometric-component-library/src/components/<kebab-name>/<Name>.docs.mdx`:
 
 ```mdx
@@ -322,11 +326,31 @@ import * as <Name>Stories from './<name>.stories';
 
 <Canvas of={<Name>Stories.Disabled} />
 
+## Do's and don'ts
+
+(Optional — only when a genuinely clear, real misuse pattern exists for this component. 1-3
+pairs is normal; do not invent a pair just to have one.) If the target repo already ships a
+Do/Don't demonstration component (check its Storybook helpers directory — e.g.
+`.storybook/components/`), reuse it rather than hand-rolling a comparison table. Good sources for
+genuine pairs: an existing house rule already documented elsewhere that's never been visualized;
+a real, observed misuse the component's own JSDoc already warns against. Do not add a pair for
+something the component doesn't actually support either way.
+
 ## Accessibility
 
-- **Keyboard:** describe keyboard interaction
+### Keyboard interaction
+- Describe keyboard interaction (real `<table>` if there's more than one key/behaviour pair)
+
+### Screen reader behaviour
+- Native semantics (e.g. "renders as a native `<button>` — no `role` override needed")
+- Where the accessible label/name comes from
+- How each state (disabled/loading/error/etc.) is announced — not just visually indicated
+
+### Requirements
 - **Focus ring:** driven by `color.focus.ring` DTCG token; visible in all 4 themes
 - **WCAG AA:** note contrast decisions (quote ratios from Stage 1 plan if available)
+- Any capability that is explicitly *not* supported — verify against the component's own
+  JSDoc/props first, don't assume
 - **Sealed props:** `color`, `radius`, `style` intentionally omitted — styling is token-driven
 
 ## Token decisions
