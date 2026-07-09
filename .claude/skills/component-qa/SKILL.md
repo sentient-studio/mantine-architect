@@ -336,6 +336,12 @@ genuine pairs: an existing house rule already documented elsewhere that's never 
 a real, observed misuse the component's own JSDoc already warns against. Do not add a pair for
 something the component doesn't actually support either way.
 
+**If a Don't example deliberately reproduces a real accessibility violation** (e.g. an icon-only
+button with no accessible name), suppress the specific axe rule it trips on that story's own
+parameters, with a one-line comment explaining the inaccessibility is intentional. Step 4 runs
+axe on every story and treats serious/critical violations as verdict-blocking — without this, the
+QA run would flag its own "wrong way" documentation example as a blocking finding.
+
 ## Accessibility
 
 ### Keyboard interaction
