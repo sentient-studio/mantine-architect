@@ -78,6 +78,8 @@ ls prometric-component-library/src/components/<kebab-name>/
       index.ts                  ← barrel exports (verify component is exported)
     .storybook/
       preview.tsx               ← 4 themes: light, dark, celpip, legacy
+      docs-nav-order.mjs        ← UPDATE (Step 5, only if this file exists) — shared source for
+                                   sidebar storySort + DocsPager, don't touch preview.tsx/DocsPager.tsx directly
     package.json
 ```
 
@@ -144,6 +146,27 @@ Check against the sealed API contract from `copilot-instructions.md`.
 - [ ] Disabled state story (if applicable)
 - [ ] Loading state story (if applicable)
 - [ ] Focus/keyboard behaviour story
+
+**Sidebar category check** — meta `title:` must be `'Components/<Category>/<Name>'`, not a bare
+`'Components/<Name>'`. Category comes from `00-setup/stage4-prompt.md`'s taxonomy:
+
+| Category | Components |
+|---|---|
+| `Action` | Buttons, icon buttons, FABs |
+| `Input & Control` | Text inputs, selects, checkboxes, toggles, sliders, date pickers |
+| `Overlay` | Modals, drawers, tooltips, popovers, notifications |
+| `Feedback & Status` | Alerts, progress bars, skeletons, spinners, banners |
+| `Data Display` | Cards, badges, avatars, stats, timelines, lists |
+| `Surfaces` | AppShell, panels, page layouts |
+| `Navigation` | Tabs, navbars, breadcrumbs, steppers, sidebars |
+| `Data & Tables` | Tables, drag lists, pagination |
+| `Disclosure` | Accordions, expandable sections |
+| `Foundations` | Structural/typography primitives with no clear fit above (Text, Divider) — a sub-category added under `Components`, distinct from the existing top-level `Foundations` sidebar group (Content & Writing, Design Tokens) |
+
+If the component doesn't yet have a category segment (i.e. still `'Components/<Name>'`), add one as
+part of this QA pass — same file, same PR, no separate branch needed since the component's own
+implementation PR hasn't merged yet at this stage. If a component genuinely doesn't fit any row
+here, flag it as a finding rather than forcing a wrong category — the team decides, don't guess.
 
 **Reference/prototype capability cross-check** — if a richer reference or prototype copy of this component exists anywhere in the repo tree (e.g. an earlier build under a `-main`/`-prototype`-suffixed directory), check whether it documents a prop, state, or behaviour the shipped component's prop interface doesn't have, or whether its docs contradict the shipped component's own JSDoc (e.g. a reference claiming a capability "is not supported" when the shipped component's JSDoc explicitly documents support for it). **Flag this as a finding — never silently fabricate docs for a capability the shipped component doesn't have, and never silently resolve a contradiction one way or the other.** The team decides whether the gap is real future scope or the reference is simply stale; Stage 4 QA's job is to surface the discrepancy, not adjudicate it.
 
@@ -379,6 +402,60 @@ All visual decisions flow through the DTCG token system via `DsProvider`.
 
 Keep the file under ~100 lines. No raw hex values. Screenshots are not committed.
 
+### Register the new docs page in the shared reading-order list (if present)
+
+Check whether the target repo has adopted the docs reading-order system:
+```bash
+ls {RepoPath}/prometric-component-library/.storybook/docs-nav-order.mjs 2>/dev/null
+```
+If it doesn't exist, skip this subsection entirely — non-blocking, same treatment as a missing Figma
+reference in Step 8. Don't create it; that's a separate, deliberate feature addition, not something
+this skill should introduce as a side effect of one component's QA pass.
+
+If it exists, this ONE file drives both the sidebar's `storySort` (via
+`infra/scripts/generate-story-sort.mjs`, chained into `yarn storybook`/`yarn build-storybook` — never
+edit the generated block it writes into `preview.tsx` directly) and the footer Prev/Next pager
+(`components/DocsPager.tsx`). Editing it is the only step needed here.
+
+**Why a codegen step exists instead of a plain import:** Storybook statically parses
+`parameters.options.storySort` with Babel and `eval()`s just that one AST node in isolation —
+confirmed by reading `@storybook/core`'s `getStorySortParameter` source directly. A bare identifier
+reference there (i.e. `preview.tsx` importing `docs-nav-order.mjs` and assigning it to `storySort`
+directly) throws `"should be defined inline"` at story-index build time. This is why the generated
+block must stay generated — resist the urge to "simplify" it back into a plain import if you ever
+touch `preview.tsx`'s `storySort` config; that exact simplification is what breaks Storybook's dev
+server startup.
+
+Read it and add exactly one entry to the `DOCS_NAV_ORDER` array for `<Name>`'s new docs page:
+
+```js
+{ title: 'Components/<Category>/<Name>' },
+```
+
+- `title` must match the component's meta `title:` string exactly (the same one resolved in Step 3's
+  sidebar category check) — the generator derives both the sidebar position and the pager's docs-page
+  id from this string, so a mismatch here silently breaks the id lookup, not just the sort order.
+- Omit `pagerLabel` unless the last `/`-segment of `title` reads wrong as a pager link label on its
+  own (it defaults to that segment, e.g. `'Components/Action/Button'` → "Button" — right for nearly
+  every component). Only components have ever needed this omitted; don't add it speculatively.
+
+Position matters — this is a reading-order list, not an alphabetical one:
+- Find the block of entries whose `title` starts with `Components/<Category>/` (the same `<Category>`
+  used above). Append the new entry as the last line inside that block.
+- If no block exists yet for that category (a genuinely new category), add one. Place it in the same
+  relative position that category actually occupies in the live Storybook sidebar — check the running
+  Storybook (or ask the user if it isn't running) rather than guessing or defaulting to alphabetical;
+  the existing entries in this file were ordered to match the real sidebar, not A–Z.
+
+Never touch the `Foundations` entries (Content & Writing, Design Tokens) — those are hand-authored
+MDX pages, not components under Stage 4 QA, and out of scope for this skill.
+
+Add the file to Step 9b's `git add` list alongside the other docs artifacts. Do NOT separately add
+`.storybook/preview.tsx` or `components/DocsPager.tsx` for this — they aren't touched by hand; the
+generated `storySort` block in `preview.tsx` regenerates automatically the next time anyone runs
+`yarn storybook`/`yarn build-storybook`, and `DocsPager.tsx` reads `DOCS_NAV_ORDER` at runtime with no
+build step at all.
+
 ---
 
 ## Step 6 — Add play functions to stories
@@ -598,6 +675,7 @@ git add prometric-component-library/src/components/<kebab-name>/<Name>.stories.t
 git add prometric-component-library/src/manifest/component-support.ts
 git add prometric-component-library/src/index.ts  # only if modified
 git add prometric-component-library/src/components/<kebab-name>/<Name>.figma.ts  # only if generated (Step 8)
+git add prometric-component-library/.storybook/docs-nav-order.mjs  # only if it exists and was updated (Step 5)
 git commit -m "docs(qa): <Name> — Stage 4 documentation and interaction tests"
 git push -u origin docs/qa/<kebab-name>
 
@@ -620,10 +698,12 @@ The docs PR should not be merged until the engineering implementation PR is merg
 ## Checklist
 
 - [ ] PR branch checked out; component files present
+- [ ] Meta `title:` includes a category segment per `stage4-prompt.md`'s taxonomy (Step 3)
 - [ ] `<Name>.docs.mdx` written with all required sections
 - [ ] Play functions added (no duplicates)
 - [ ] Manifest flipped `governance-approved` → `supported`
 - [ ] Barrel export in `src/index.ts` verified
+- [ ] Docs reading-order entry added to `docs-nav-order.mjs` (or explicitly skipped — file doesn't exist in this repo)
 - [ ] Figma Code Connect mapping generated (or explicitly skipped), and if published, `hasTemplate` verified via `get_code_connect_map`
 - [ ] Axe results table populated for all stories × 4 themes
 - [ ] QA comment posted on engineering PR with verdict
