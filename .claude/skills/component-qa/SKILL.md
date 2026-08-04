@@ -368,7 +368,10 @@ QA run would flag its own "wrong way" documentation example as a blocking findin
 ## Accessibility
 
 ### Keyboard interaction
-- Describe keyboard interaction (real `<table>` if there's more than one key/behaviour pair)
+- Always include this subsection, even for non-interactive components — never omit it outright.
+  If the component is not interactive/focusable, say so explicitly (e.g. "not applicable — `<Name>`
+  is not interactive or focusable") rather than dropping the subsection. Otherwise describe the real
+  keyboard interaction (a `<table>` if there's more than one key/behaviour pair).
 
 ### Screen reader behaviour
 - Native semantics (e.g. "renders as a native `<button>` — no `role` override needed")
@@ -381,23 +384,6 @@ QA run would flag its own "wrong way" documentation example as a blocking findin
 - Any capability that is explicitly *not* supported — verify against the component's own
   JSDoc/props first, don't assume
 - **Sealed props:** `color`, `radius`, `style` intentionally omitted — styling is token-driven
-
-## Token decisions
-
-| Token | Purpose |
-|---|---|
-| `component.<name>.primary.*` | Primary variant colors |
-| `component.<name>.secondary.*` | Secondary variant colors |
-
-(Populate from Stage 1 plan; infer from source if no plan exists.)
-
-## Sealed API
-
-These Mantine props are not forwarded to consumers:
-
-`color` · `c` · `bg` · `radius` · `style` · `styles` · `classNames` · `sx` · `unstyled`
-
-All visual decisions flow through the DTCG token system via `DsProvider`.
 ```
 
 Keep the file under ~100 lines. No raw hex values. Screenshots are not committed.
@@ -589,9 +575,9 @@ Show the user the generated mapping (node id, component name, which properties w
 
 - **Yes** → publish via the **CLI**, not the MCP tools (see below for why). Requires `@figma/code-connect` as a dev dependency and a `figma.config.json` (`{"codeConnect": {"parser": "react", "include": ["<glob matching your *.figma.ts files>"]}}`) in the target project — one-time setup per repo. Run from the target project's own package directory, not via a raw `node node_modules/.bin/...` path (unreliable if node_modules is hoisted or the repo nests the actual package one level deeper than the checkout root):
   ```bash
-  cd "<path to the package containing node_modules>" && yarn figma connect publish -t "$FIGMA_ACCESS_TOKEN" --skip-update-check
+  cd "<path to the package containing node_modules>" && FIGMA_ACCESS_TOKEN="$FIGMA_ACCESS_TOKEN" yarn figma connect publish --skip-update-check
   ```
-  `yarn <bin>` resolves `figma` from the local `node_modules/.bin` automatically — don't hardcode a `node_modules/.bin/figma` path. Read `FIGMA_ACCESS_TOKEN` from wherever the `figma` MCP server's own config sources it — never print or log the token value. A successful run prints `Successfully uploaded to Figma, for Code: -> <Name> <url>`; a failed run prints a clear error (e.g. a 403) and exits non-zero — check the exit code, don't just check for the absence of a crash.
+  **Never pass the token via `-t`/`--token`.** The CLI reads `FIGMA_ACCESS_TOKEN` from the environment automatically (confirmed via `--dry-run` 2026-07-24) — `-t` is redundant and actively dangerous: `yarn <script>` echoes its fully-resolved command line (including any `-t <value>` argument) to stdout before running it, which leaks the token into the terminal/log/transcript even with the value read from a variable. Env-var-only avoids this because the value never appears as a literal argument anywhere `yarn`, `ps`, or shell history could capture it. `yarn <bin>` resolves `figma` from the local `node_modules/.bin` automatically — don't hardcode a `node_modules/.bin/figma` path. Read `FIGMA_ACCESS_TOKEN` from wherever the `figma` MCP server's own config sources it — never print or log the token value. A successful run prints `Successfully uploaded to Figma, for Code: -> <Name> <url>`; a failed run prints a clear error (e.g. a 403) and exits non-zero — check the exit code, don't just check for the absence of a crash.
   - `mcp__figma__send_code_connect_mappings`/`add_code_connect_map` **do not reliably persist the template** (see 8i) — don't use them as the publish step. They're still useful read-only for 8c/8d (discovery, existing-mapping check).
 - **No** → still commit the `.figma.ts` file to the docs PR so the work isn't lost. Note `"Code Connect: drafted, not published"` in the QA comment.
 
